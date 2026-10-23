@@ -179,7 +179,6 @@ internal class BrandCache(context: Context) {
         private const val TAG = "BrandCache"
         private const val OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
-
         // The feed's coordinates are rounded to ~100 m and sometimes sit on the street.
         private const val NEARBY_METERS = 300
 
