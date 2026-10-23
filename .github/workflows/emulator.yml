@@ -1,0 +1,166 @@
+name: Emulator
+
+# Runs the app on an Android Automotive emulator (Automotive with Google APIs, which has the
+# templates host), landscape 1024 x 768 and portrait 800 x 1280: fails if the app crashes or the
+# host refuses a template. Screenshots are kept as an artifact; run it by hand with "screenshots"
+# to commit them to play/graphics/automotive for the Play listing.
+on:
+  push:
+    branches: [main]
+    paths:
+      - app/**
+      - gradle/**
+      - "*.gradle.kts"
+      - .github/scripts/emulator-shots.sh
+      - .github/workflows/emulator.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - app/**
+      - gradle/**
+      - "*.gradle.kts"
+      - .github/scripts/emulator-shots.sh
+      - .github/workflows/emulator.yml
+  workflow_dispatch:
+    inputs:
+      screenshots:
+        description: Commit the screenshots to play/graphics/automotive
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: emulator-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  emulator:
+    name: Automotive ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: landscape
+            device: automotive_1024p_landscape
+            skin: ""
+          - name: portrait
+            device: automotive_1024p_landscape
+            skin: 800x1280
+    env:
+      IMAGE: system-images;android-34-ext9;android-automotive;x86_64
+      # avdmanager and the emulator must look in the same place.
+      ANDROID_USER_HOME: /home/runner/.android
+      ANDROID_AVD_HOME: /home/runner/.android/avd
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v5
+      - run: ./gradlew --no-daemon assembleDebug
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Install the system image
+        timeout-minutes: 15
+        run: |
+          trap 'echo "::error::line $LINENO: $BASH_COMMAND (exit $?)"' ERR
+          BIN="$ANDROID_HOME/cmdline-tools/latest/bin"
+          yes | "$BIN/sdkmanager" --licenses >/dev/null || true
+          start=$(date +%s)
+          "$BIN/sdkmanager" "emulator" "platform-tools" "$IMAGE" > sdk.log 2>&1 || { tail -5 sdk.log | while read -r l; do echo "::error::$l"; done; exit 1; }
+          echo "::notice::system image installed in $(( $(date +%s) - start )) s"
+          ("$BIN/avdmanager" list device -c 2>/dev/null || true) | grep -i automotive | paste -sd ' ' - | while read -r l; do echo "::notice::devices: $l"; done
+          echo no | "$BIN/avdmanager" create avd -p "$ANDROID_AVD_HOME/car.avd" -n car -k "$IMAGE" -d "${{ matrix.device }}"
+          mkdir -p "$ANDROID_AVD_HOME"
+          if [ ! -f "$ANDROID_AVD_HOME/car.ini" ]; then
+            found=$(find "$HOME" -name car.ini 2>/dev/null | head -1)
+            echo "::notice::car.ini written by avdmanager: ${found:-none}"
+            printf 'avd.ini.encoding=UTF-8\npath=%s\npath.rel=avd/car.avd\ntarget=android-34\n' "$ANDROID_AVD_HOME/car.avd" > "$ANDROID_AVD_HOME/car.ini"
+          fi
+          AVD="$ANDROID_AVD_HOME/car.avd/config.ini"
+          {
+            echo "hw.ramSize=4096"
+            echo "hw.cpu.ncore=4"
+            echo "disk.dataPartition.size=6G"
+          } >> "$AVD"
+          if [ -n "${{ matrix.skin }}" ]; then
+            W=${{ matrix.skin }}; H=${W#*x}; W=${W%x*}
+            sed -i '/^hw.lcd.width/d;/^hw.lcd.height/d;/^skin./d' "$AVD"
+            { echo "hw.lcd.width=$W"; echo "hw.lcd.height=$H"; echo "skin.name=${W}x${H}"; echo "skin.dynamic=yes"; } >> "$AVD"
+          fi
+          (grep -E "^(hw.lcd|hw.ramSize|skin|hw.device)" "$AVD" || true) | while read -r l; do echo "::notice::$l"; done
+          ("$ANDROID_HOME/emulator/emulator" -accel-check 2>&1 || true) | tail -2 | while read -r l; do echo "::notice::$l"; done
+      - name: Boot
+        timeout-minutes: 20
+        run: |
+          trap 'echo "::error::line $LINENO: $BASH_COMMAND (exit $?)"' ERR
+          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
+          export PATH="$ANDROID_HOME/platform-tools:$PATH"
+          "$ANDROID_HOME/emulator/emulator" -list-avds | while read -r l; do echo "::notice::avd: $l"; done
+          "$ANDROID_HOME/emulator/emulator" -avd car -no-window -gpu swiftshader_indirect -no-snapshot -noaudio \
+            -no-boot-anim -camera-back none -camera-front none -timezone Europe/Paris \
+            > emulator.log 2>&1 &
+          pid=$!
+          start=$(date +%s)
+          ok=""
+          while [ $(( $(date +%s) - start )) -lt 1080 ]; do
+            if ! kill -0 "$pid" 2>/dev/null; then echo "::error::the emulator stopped"; break; fi
+            if [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then ok=1; break; fi
+            sleep 10
+          done
+          echo "::notice::boot took $(( $(date +%s) - start )) s, completed=${ok:-no}"
+          if [ -z "$ok" ]; then
+            tail -40 emulator.log | while read -r l; do echo "::warning::$l"; done
+            adb devices || true
+            exit 1
+          fi
+          # French system language, as in a French car: root, set it, restart the framework.
+          if adb root 2>&1 | grep -q -E "restarting|already running as root"; then
+            sleep 5
+            adb wait-for-device
+            adb shell "setprop persist.sys.locale fr-FR; setprop sys.boot_completed 0; setprop ctl.restart zygote"
+            start=$(date +%s)
+            until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ] || [ $(( $(date +%s) - start )) -gt 300 ]; do sleep 5; done
+            echo "::notice::locale $(adb shell getprop persist.sys.locale | tr -d '\r'), framework back in $(( $(date +%s) - start )) s"
+          else
+            echo "::notice::no adb root: system language left as is"
+          fi
+          adb shell wm size | while read -r l; do echo "::notice::$l"; done
+          adb shell settings put global window_animation_scale 0
+          adb shell settings put global transition_animation_scale 0
+          adb shell settings put global animator_duration_scale 0
+          sleep 30
+          adb shell pm list packages | grep -i -E "templates|car.app|automotive" | while read -r l; do echo "::notice::$l"; done
+      - name: Run the app
+        timeout-minutes: 10
+        run: .github/scripts/emulator-shots.sh app/build/outputs/apk/debug/app-debug.apk shots ${{ matrix.name }}
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: emulator-${{ matrix.name }}
+          path: |
+            shots/
+            emulator.log
+          if-no-files-found: ignore
+      - name: Commit the screenshots
+        if: github.event_name == 'workflow_dispatch' && inputs.screenshots
+        run: |
+          mkdir -p play/graphics/automotive
+          n=1
+          for screen in list detail fuel; do
+            cp "shots/${{ matrix.name }}-$screen.png" "play/graphics/automotive/${{ matrix.name }}-$n-$screen.png"
+            n=$((n + 1))
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add play/graphics/automotive
+          git commit -m "Update ${{ matrix.name }} Automotive screenshots" || exit 0
+          for _ in 1 2 3 4 5; do git pull --rebase -q && git push -q && break; sleep $((RANDOM % 10 + 5)); done
