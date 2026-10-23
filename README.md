@@ -19,7 +19,8 @@ so it follows the platform's driving guidelines out of the box.
 | ![Nearby stations](screenshots/list.png) | ![Station detail](screenshots/detail.png) | ![Fuel picker](screenshots/fuel.png) |
 
 Mock-ups of the templates as the car's host draws them (dark theme, 1408 × 792), made with made-up
-data by `python scripts/screenshots.py` (Playwright + Pillow, map from the OpenStreetMap tiles in `scripts/tiles`).
+data by `python scripts/screenshots.py` (Playwright + Pillow, map from the OpenStreetMap tiles in `scripts/tiles`,
+brand logos found as the app does and kept in `scripts/logos`). The Screenshots workflow runs it again when the script changes.
 
 ## Data
 
@@ -68,6 +69,7 @@ On a real car, third-party templated apps are installed through Google Play (int
 | Update release notes | Rewrites a release's notes from `CHANGELOG.md` (input `tag`) |
 | Clean up merged branches | Deletes merged branches after each pull request and weekly |
 | Stale | Marks and closes inactive issues and pull requests |
+| Screenshots | Makes the README screenshots again (with brand logos) and commits them when they change |
 
 Release signing uses the repository secrets `SIGNING_KEYSTORE_BASE64` (the upload keystore, `base64 -w0`),
 `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD`; without them the release is signed

@@ -1,0 +1,45 @@
+name: Screenshots
+
+# Makes the README screenshots again (scripts/screenshots.py) with network, so brand logos are
+# found the app's way (name-suggestion-index -> Wikidata -> Commons) and kept in scripts/logos.
+# Commits the result to main when something changed.
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/screenshots.py
+      - app/src/main/res/drawable-nodpi/**
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: true
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q fonts-inter
+          pip install playwright==1.63.0 pillow
+          playwright install --with-deps chromium
+      - run: python scripts/screenshots.py
+      - name: Commit
+        run: |
+          git add screenshots scripts/logos
+          if git diff --cached --quiet; then
+            echo "Screenshots unchanged"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update screenshots"
+          git push

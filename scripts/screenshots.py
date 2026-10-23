@@ -13,7 +13,13 @@ from __future__ import annotations
 import base64
 import html
 import io
+import json
 import math
+import re
+import unicodedata
+import urllib.parse
+import urllib.request
+from functools import cache
 from pathlib import Path
 
 from PIL import Image
@@ -22,6 +28,10 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parent.parent
 TILES = ROOT / "scripts" / "tiles"
 LOGOS = ROOT / "app" / "src" / "main" / "res" / "drawable-nodpi"
+# Brand logos found the app's way (name-suggestion-index -> Wikidata -> Commons), kept for offline runs.
+BRAND_LOGOS = ROOT / "scripts" / "logos"
+USER_AGENT = "Carburants-AAOS-screenshots/1.0 (+https://github.com/juju35/aaos-carburants)"
+NSI_URL = "https://raw.githubusercontent.com/osmlab/name-suggestion-index/main/data/brands/amenity/fuel.json"
 OUT = ROOT / "screenshots"
 WIDTH, HEIGHT = 1408, 792
 ZOOM = 14
@@ -135,8 +145,6 @@ def brand_color(name):
 
 
 def initials(name):
-    import re
-
     words = [w for w in re.sub(r"[^A-Za-zÀ-ÿ0-9 ]", " ", name).split() if w]
     if not words:
         return "?"
@@ -147,13 +155,105 @@ def data_uri(path: Path) -> str:
     return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode()
 
 
+# ── Brand logos, as the app finds them (data/BrandIndex.kt, data/BrandCache.kt) ──
+
+
+def brand_key(name):
+    """BrandIndex.key: accents dropped, letters and digits only."""
+    return "".join(c for c in unicodedata.normalize("NFD", name).lower() if c.isascii() and c.isalnum())
+
+
+def http_get(url):
+    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}), timeout=30) as resp:
+        return resp.read()
+
+
+@cache
+def brand_index():
+    """Brand name -> Wikidata id, from the name-suggestion-index (brands used in France first)."""
+    items = json.loads(http_get(NSI_URL))["items"]
+
+    def rank(item):
+        loc = item.get("locationSet") or {}
+        include = [str(x).lower() for x in loc.get("include", [])]
+        if "fr" in [str(x).lower() for x in loc.get("exclude", [])]:
+            return 3
+        if any(x == "fr" or x.startswith(("fr-", "fr.")) for x in include):
+            return 0
+        return 1 if "150" in include else 2 if ("001" in include or not include) else 3
+
+    index = {}
+    for item in sorted(items, key=rank):
+        qid = (item.get("tags") or {}).get("brand:wikidata", "")
+        if rank(item) > 2 or not qid.startswith("Q"):
+            continue
+        tags = item["tags"]
+        for name in [
+            item.get("displayName", ""),
+            tags.get("brand", ""),
+            tags.get("name", ""),
+            *item.get("matchNames", []),
+        ]:
+            if brand_key(name):
+                index.setdefault(brand_key(name), qid)
+    return index
+
+
+def wikidata_logo_url(qid):
+    """P8972 (small logo or icon), else P154 (logo image): preferred rank, else no end time, else the last."""
+    url = "https://www.wikidata.org/w/api.php?" + urllib.parse.urlencode(
+        {"action": "wbgetentities", "ids": qid, "props": "claims", "format": "json"}
+    )
+    claims = json.loads(http_get(url))["entities"][qid].get("claims", {})
+    for prop in ("P8972", "P154"):
+        usable = [
+            c
+            for c in claims.get(prop, [])
+            if c.get("rank") != "deprecated"
+            and isinstance(c.get("mainsnak", {}).get("datavalue", {}).get("value"), str)
+        ]
+        if not usable:
+            continue
+        preferred = [c for c in usable if c.get("rank") == "preferred"]
+        current = [c for c in usable if "P582" not in (c.get("qualifiers") or {})]
+        claim = preferred[0] if preferred else (current or usable)[-1]
+        file = claim["mainsnak"]["datavalue"]["value"].replace(" ", "_")
+        return f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(file)}?width=256"
+    return None
+
+
+def brand_logo(brand):
+    """Cached PNG of the brand's logo, downloaded once; None when there is none or no network."""
+    path = BRAND_LOGOS / f"{brand_key(brand)}.png"
+    if path.exists():
+        return path
+    try:
+        words = brand.split()
+        qid = next(
+            (q for n in range(len(words), 0, -1) if (q := brand_index().get(brand_key(" ".join(words[:n]))))), None
+        )
+        url = qid and wikidata_logo_url(qid)
+        if not url:
+            print(f"no logo for {brand}")
+            return None
+        image = Image.open(io.BytesIO(http_get(url))).convert("RGBA")
+    except Exception as err:  # Offline: initials, as the app does until the logo is there.
+        print(f"logo for {brand} not downloaded: {err}")
+        return None
+    BRAND_LOGOS.mkdir(exist_ok=True)
+    image.save(path, "PNG", optimize=True)
+    print(f"downloaded {path.relative_to(ROOT)}")
+    return path
+
+
 def logo(st, size):
     """Logo on a white tile, else the initials badge (Badges.logoTile / initialsBadge)."""
     radius = round(size * 0.22)
-    if st.get("logo"):
+    path = LOGOS / st["logo"] if st.get("logo") else brand_logo(st["brand"])
+    if path:
         return (
             f'<div class="tile" style="width:{size}px;height:{size}px;border-radius:{radius}px;background:#fff">'
-            f'<img src="{data_uri(LOGOS / st["logo"])}" style="width:80%;height:80%"></div>'
+            f'<img src="{data_uri(path)}" style="width:80%;height:80%;object-fit:contain"></div>'
         )
     return (
         f'<div class="tile" style="width:{size}px;height:{size}px;border-radius:{radius}px;'
