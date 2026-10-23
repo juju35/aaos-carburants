@@ -11,6 +11,15 @@ so it follows the platform's driving guidelines out of the box.
 - Fuel picker (Gazole, SP95, SP98, E10, E85, GPLc) and price / distance sort, both remembered
 - Automatic refresh after 2 km or 10 minutes; 10 km radius, widened to 30 km when there are fewer than 3 stations
 
+## Screenshots
+
+| Nearby stations | Station | Fuel |
+| --- | --- | --- |
+| ![Nearby stations](screenshots/list.png) | ![Station detail](screenshots/detail.png) | ![Fuel picker](screenshots/fuel.png) |
+
+Mock-ups of the templates as the car's host draws them (dark theme, 1408 × 792), made with made-up
+data by `python scripts/screenshots.py` (Playwright + Pillow, map from the OpenStreetMap tiles in `scripts/tiles`).
+
 ## Data
 
 Same sources and logic as [ha-carburants-france](https://github.com/juju35/ha-carburants-france):
