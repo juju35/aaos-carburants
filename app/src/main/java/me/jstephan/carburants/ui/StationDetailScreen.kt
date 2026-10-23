@@ -20,8 +20,8 @@ import me.jstephan.carburants.R
 import me.jstephan.carburants.data.Fuel
 import me.jstephan.carburants.data.RUPTURE_DEFINITIVE
 import me.jstephan.carburants.data.Station
+import me.jstephan.carburants.data.StationNames
 import me.jstephan.carburants.data.StationRepository
-import me.jstephan.carburants.data.formatCity
 import me.jstephan.carburants.ui.Format.appendColored
 import me.jstephan.carburants.ui.Format.appendDistance
 
@@ -62,12 +62,12 @@ class StationDetailScreen(
         if (yours.isNotEmpty()) row.addText(join(yours))
         if (price != null) {
             row.setTitle(carContext.getString(R.string.price_per_litre, main.label, Format.price(price)))
-            fp?.updated?.let { row.addText(carContext.getString(R.string.updated, Format.relative(it))) }
+            fp?.updated?.let { row.addText(carContext.getString(R.string.updated, Format.ago(carContext, it))) }
         } else if (fp?.rupture != null) {
             row.setTitle("${main.label} · ${carContext.getString(R.string.rupture)}")
             val since = fp.ruptureSince
             val text = if (since != null) {
-                carContext.getString(R.string.rupture_since, Format.relative(since))
+                carContext.getString(R.string.rupture_since, Format.since(since))
             } else {
                 carContext.getString(R.string.rupture)
             }
@@ -111,7 +111,7 @@ class StationDetailScreen(
     }
 
     private fun addressRow(): Row {
-        val address = formatCity(station.address).ifEmpty { station.prettyCity }
+        val address = StationNames.prettyAddress(station.address).ifEmpty { station.prettyCity }
         val line = SpannableStringBuilder("${station.postcode} ${station.prettyCity}".trim())
         station.distanceKm?.let { line.append(" · ").appendDistance(it) }
         return Row.Builder()

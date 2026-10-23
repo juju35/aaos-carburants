@@ -221,17 +221,15 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
             line2.appendColored(opening.text, opening.color)
         }
 
-        val marker = PlaceMarker.Builder()
-            .setIcon(image, PlaceMarker.TYPE_IMAGE)
-            .apply { if (isCheapest) setColor(CarColor.GREEN) }
-            .build()
+        // The station's logo as its marker: on the map and next to the row (a row can't have both
+        // an image and a marker, and the host refuses a colour on image markers).
+        val marker = PlaceMarker.Builder().setIcon(image, PlaceMarker.TYPE_IMAGE).build()
         val place = Place.Builder(CarLocation.create(station.latitude, station.longitude)).setMarker(marker).build()
 
         return Row.Builder()
             .setTitle(station.name)
             .addText(line1)
             .addText(line2)
-            .setImage(image, Row.IMAGE_TYPE_LARGE)
             .setMetadata(Metadata.Builder().setPlace(place).build())
             .setOnClickListener { screenManager.push(StationDetailScreen(carContext, station, fuels)) }
             .build()

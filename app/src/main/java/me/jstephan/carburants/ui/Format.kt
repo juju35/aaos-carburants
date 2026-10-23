@@ -3,7 +3,6 @@ package me.jstephan.carburants.ui
 import android.content.Context
 import android.text.SpannableStringBuilder
 import android.text.Spanned
-import android.text.format.DateUtils
 import androidx.car.app.model.CarColor
 import androidx.car.app.model.CarIcon
 import androidx.car.app.model.Distance
@@ -16,6 +15,7 @@ import me.jstephan.carburants.data.Station
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -24,8 +24,26 @@ internal object Format {
 
     fun price(value: Double): String = String.format(FR, "%.3f €", value)
 
-    fun relative(instant: Instant): CharSequence =
-        DateUtils.getRelativeTimeSpanString(instant.toEpochMilli(), System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
+    /**
+     * "12 min", "3 h", "2 j" since [instant]; null under a minute. In French whatever the car's language,
+     * like the rest of the app. A station clock ahead of time counts as now.
+     */
+    private fun elapsed(instant: Instant): String? {
+        val minutes = maxOf(0L, (System.currentTimeMillis() - instant.toEpochMilli()) / 60_000)
+        return when {
+            minutes < 1 -> null
+            minutes < 60 -> "$minutes min"
+            minutes < 48 * 60 -> "${minutes / 60} h"
+            else -> "${minutes / (24 * 60)} j"
+        }
+    }
+
+    /** "il y a 12 min", "à l'instant". */
+    fun ago(context: Context, instant: Instant): String =
+        elapsed(instant)?.let { context.getString(R.string.ago, it) } ?: context.getString(R.string.just_now)
+
+    /** "12 min", "2 j", at least "1 min". */
+    fun since(instant: Instant): String = elapsed(instant) ?: "1 min"
 
     /** Distance for a DistanceSpan: metres under 1 km, km with one decimal under 10 km. */
     fun distance(km: Double): Distance = when {
@@ -35,7 +53,8 @@ internal object Format {
     }
 
     fun SpannableStringBuilder.appendDistance(km: Double): SpannableStringBuilder =
-        append(" ", DistanceSpan.create(distance(km)), Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+        // Exclusive: the host replaces the whole span with the distance, text appended after it must stay out.
+        append(" ", DistanceSpan.create(distance(km)), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
     fun SpannableStringBuilder.appendColored(text: CharSequence, color: CarColor): SpannableStringBuilder =
         append(text, ForegroundCarColorSpan.create(color), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -61,7 +80,10 @@ internal object Format {
         return (parts.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (parts.getOrNull(1)?.toIntOrNull() ?: 0)
     }
 
-    fun opening(context: Context, station: Station, now: LocalDateTime = LocalDateTime.now()): Opening? {
+    /** Stations are in France: their hours are read in French time, whatever the car's time zone. */
+    private val STATION_ZONE: ZoneId = ZoneId.of("Europe/Paris")
+
+    fun opening(context: Context, station: Station, now: LocalDateTime = LocalDateTime.now(STATION_ZONE)): Opening? {
         val hours = station.hours
         val day = now.dayOfWeek.value
         val current = now.hour * 60 + now.minute

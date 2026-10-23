@@ -332,7 +332,7 @@ def list_page():
     markers = []
     for st in stations:
         x, y = screen_px(st["lat"], st["lon"])
-        ring = "#34c47c" if best(st)[1] == cheapest else "#ffffff"
+        ring = "#ffffff"  # The host refuses colours on image markers: no highlight on the map.
         markers.append(
             f'<div class="marker" style="left:{x - 26}px;top:{y - 26}px;border-color:{ring}">{logo(st, 44)}</div>'
         )

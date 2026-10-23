@@ -5,8 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.util.LruCache
+import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import me.jstephan.carburants.R
 import me.jstephan.carburants.ui.Badges
 import java.io.File
 import java.security.MessageDigest
@@ -53,9 +55,17 @@ class LogoLoader internal constructor(private val context: Context) {
             }
             url != null -> downloaded.get(url)?.let { Badges.logoTile(it, size, Color.WHITE) }
             else -> null
-        } ?: Badges.initialsBadge(station.brand ?: station.name, size)
+        } ?: fallback(station, size)
         tiles.put(key, bitmap)
         return bitmap
+    }
+
+    /** The brand's initials, or a pump when the brand is unknown (initials of an address mean nothing). */
+    private fun fallback(station: Station, size: Int): Bitmap {
+        val brand = station.brand
+        if (brand != null) return Badges.initialsBadge(brand, size)
+        val pump = ContextCompat.getDrawable(context, R.drawable.ic_fuel)
+        return if (pump != null) Badges.genericBadge(pump, size) else Badges.initialsBadge(station.name, size)
     }
 
     private fun load(url: String): Bitmap? {

@@ -81,7 +81,7 @@ class StationRepository private constructor(context: Context) {
         val title = community?.name?.ifEmpty { null }
             ?: usefulOsmName(info?.osmName, info?.brand)
             ?: brand?.let { "$it $city".trim() }
-            ?: "${station.address.ifEmpty { "Station" }} $city".trim()
+            ?: "${StationNames.prettyAddress(station.address).ifEmpty { "Station" }} $city".trim()
         val decorated = station.copy(name = title, brand = brand)
         return decorated.copy(logoUrl = brands.logo(qid(decorated)))
     }

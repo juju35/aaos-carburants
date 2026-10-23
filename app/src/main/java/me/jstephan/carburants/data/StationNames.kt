@@ -51,20 +51,27 @@ internal class StationNames(context: Context) {
         /** "RELAIS LES TROIS MARCHES" -> "Relais les Trois Marches". Names not in capitals are kept. */
         fun prettyName(input: String): String {
             val name = input.trim().split(Regex("\\s+")).joinToString(" ")
-            if (name.isEmpty() || name != name.uppercase() || name.none { it.isLetter() }) return name
-            return name.split(" ").mapIndexed { index, word ->
-                if (UPPER_WORDS.matches(word)) {
-                    word
-                } else {
-                    splitKeepingSeparators(word.lowercase()).mapIndexed { n, part ->
-                        when {
-                            part.isEmpty() || part in SEPARATORS -> part
-                            part in SMALL_WORDS && (index > 0 || n > 0) -> part
-                            else -> part.replaceFirstChar(Char::titlecase)
-                        }
-                    }.joinToString("")
-                }
+            if (name.isEmpty() || !isCapitals(name)) return name
+            return name.split(" ").mapIndexed { index, word -> prettyWord(word, index) }.joinToString(" ")
+        }
+
+        /** Same for the capitals in an address: "21 avenue CHARLES TILLON" -> "21 avenue Charles Tillon". */
+        fun prettyAddress(input: String): String =
+            input.trim().split(Regex("\\s+")).mapIndexed { index, word ->
+                if (isCapitals(word) && word.count { it.isLetter() } > 1) prettyWord(word, index) else word
             }.joinToString(" ")
+
+        private fun isCapitals(text: String): Boolean = text == text.uppercase() && text.any { it.isLetter() }
+
+        private fun prettyWord(word: String, index: Int): String {
+            if (UPPER_WORDS.matches(word)) return word
+            return splitKeepingSeparators(word.lowercase()).mapIndexed { n, part ->
+                when {
+                    part.isEmpty() || part in SEPARATORS -> part
+                    part in SMALL_WORDS && (index > 0 || n > 0) -> part
+                    else -> part.replaceFirstChar(Char::titlecase)
+                }
+            }.joinToString("")
         }
 
         private fun splitKeepingSeparators(word: String): List<String> {

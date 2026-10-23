@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import me.jstephan.carburants.data.Fuel
 
 /** Bitmaps drawn by the app: logo tiles, initials badges (as the card does) and fuel badges. */
@@ -52,6 +53,18 @@ object Badges {
         drawCentered(canvas, initials(label).ifEmpty { "?" }, size / 2f, size / 2f, size * 0.42f, Color.WHITE)
         return bitmap
     }
+
+    /** Grey rounded square with a pump: a station whose brand is unknown. */
+    fun genericBadge(pump: Drawable, size: Int): Bitmap {
+        val (bitmap, canvas) = tile(size, GENERIC_TILE)
+        val margin = (size * 0.2f).toInt()
+        pump.mutate().setTint(Color.WHITE)
+        pump.setBounds(margin, margin, size - margin, size - margin)
+        pump.draw(canvas)
+        return bitmap
+    }
+
+    private const val GENERIC_TILE = 0xFF5F6368.toInt()
 
     /** The logo on a rounded tile, white by default so dark or transparent logos stay readable on the car's dark UI. */
     fun logoTile(logo: Bitmap, size: Int, background: Int = Color.WHITE): Bitmap {

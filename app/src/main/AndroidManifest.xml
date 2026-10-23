@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- PlaceListMapTemplate (the list on the map). -->
+    <uses-permission android:name="androidx.car.app.MAP_TEMPLATES" />
 
     <!-- Android Automotive OS only, rendered by the car's templates host. -->
     <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
@@ -25,7 +27,7 @@
             android:name="com.android.automotive"
             android:resource="@xml/automotive_app_desc" />
         <meta-data
-            android:name="androidx.car.app.minCarAppApiLevel"
+            android:name="androidx.car.app.minCarApiLevel"
             android:value="1" />
         <meta-data
             android:name="androidx.car.app.theme"

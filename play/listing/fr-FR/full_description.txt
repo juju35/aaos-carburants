@@ -5,7 +5,7 @@ Carburants est conçue pour Android Automotive OS : elle affiche les stations-se
 ★ Les stations autour de vous
 • Carte et liste des stations dans un rayon de 10 km (30 km s'il y en a peu)
 • Logo, nom, distance et état d'ouverture de chaque station
-• La moins chère mise en avant en vert, sur la liste comme sur la carte
+• La moins chère mise en avant en vert, et chaque station repérée par son logo sur la carte
 • Tri par prix ou par distance
 • Mise à jour automatique au fil du trajet
 

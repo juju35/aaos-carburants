@@ -27,6 +27,8 @@
     <string name="keep_one_fuel">Gardez au moins un carburant</string>
     <string name="price_per_litre">%1$s · %2$s/L</string>
     <string name="updated">Mis à jour %1$s</string>
+    <string name="ago">il y a %1$s</string>
+    <string name="just_now">à l\'instant</string>
     <string name="rupture">Rupture</string>
     <string name="rupture_since">Rupture depuis %1$s</string>
     <string name="no_price">Prix indisponible</string>

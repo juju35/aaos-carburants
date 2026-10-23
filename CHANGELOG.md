@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.2
+
+First version tested on Android Automotive (emulator with the templates host): earlier versions couldn't start in a car.
+
+### Fixes
+- The templates host refused the app: the manifest named the minimum car API level `androidx.car.app.minCarAppApiLevel` instead of `androidx.car.app.minCarApiLevel`, and the `androidx.car.app.MAP_TEMPLATES` permission the map list needs was missing.
+- Station list: the logo is the station's marker, on the map and next to its row (the host refuses a row with both an image and a marker, large row images and colours on image markers). The prices show again after the distance.
+- Opening hours are read in French time, whatever the car's time zone.
+- Price ages in French ("il y a 12 min", "à l'instant"), never in the future when a station's clock is ahead.
+- Stations with no known brand: a pump badge instead of the address initials, and the address in normal case ("21 avenue Charles Tillon").
+
 ## 1.1.1
 
 ### Changes
