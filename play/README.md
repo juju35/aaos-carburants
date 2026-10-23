@@ -11,7 +11,7 @@ distributed on **Android Automotive OS only** tracks (`automotive:qa` for intern
 | `whatsnew/fr-FR.txt` | Release notes of the next release (500 max), sent by the Release workflow |
 | `graphics/icon-512.png` | App icon (512 × 512) |
 | `graphics/feature-graphic.png` | Feature graphic (1024 × 500) |
-| `graphics/automotive/*.png` | Advanced settings › Form factors › Android Automotive OS screenshots (2+ landscape 1024 × 768, 2+ portrait 800 × 1280) |
+| `graphics/automotive/*.png` | Advanced settings › Form factors › Android Automotive OS screenshots (2+ landscape 1024 × 768, 2+ portrait 800 × 1280): real screenshots from the generic Automotive emulator, as Google asks, refreshed by running the Emulator workflow by hand with *screenshots* |
 | `../PRIVACY.md` | App content › Privacy policy: `https://github.com/juju35/aaos-carburants/blob/main/PRIVACY.md` |
 
 Automotive screenshots can't go through the Publishing API (no automotive `AppImageType`): upload them in the Console.
