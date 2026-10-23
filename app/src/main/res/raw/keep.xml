@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brand logos are found by name from raw/brand_logos.json (data/BrandLogos.kt). -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/brand_*" />

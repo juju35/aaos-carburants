@@ -1,14 +1,14 @@
 name: Screenshots
 
-# Makes the README screenshots again (scripts/screenshots.py) with network, so brand logos are
-# found the app's way (name-suggestion-index -> Wikidata -> Commons) and kept in scripts/logos.
-# Commits the result to main when something changed.
+# Makes the README screenshots again (scripts/screenshots.py) with the same fonts every time,
+# and commits them to main when something changed.
 on:
   push:
     branches: [main]
     paths:
       - scripts/screenshots.py
       - app/src/main/res/drawable-nodpi/**
+      - app/src/main/res/raw/brand_logos.json
   workflow_dispatch:
 
 permissions:
@@ -34,7 +34,7 @@ jobs:
       - run: python scripts/screenshots.py
       - name: Commit
         run: |
-          git add screenshots scripts/logos
+          git add screenshots
           if git diff --cached --quiet; then
             echo "Screenshots unchanged"
             exit 0

@@ -5,7 +5,8 @@ Usage: python scripts/screenshots.py  (needs `pip install playwright pillow` and
 The pages copy the templates host layout (dark theme, 1408 x 792 like the AAOS emulator) and the
 app's own drawing rules: logo tiles and initials badges (ui/Badges.kt), price and distance lines
 (ui/StationListScreen.kt), detail rows (ui/StationDetailScreen.kt). Data is made up, around Rennes.
-The map is built from the OpenStreetMap tiles in scripts/tiles, no network needed.
+Logos are those shipped with the app (res/raw/brand_logos.json) and the map comes from the
+OpenStreetMap tiles in scripts/tiles: no network needed.
 """
 
 from __future__ import annotations
@@ -17,8 +18,6 @@ import json
 import math
 import re
 import unicodedata
-import urllib.parse
-import urllib.request
 from functools import cache
 from pathlib import Path
 
@@ -28,10 +27,7 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parent.parent
 TILES = ROOT / "scripts" / "tiles"
 LOGOS = ROOT / "app" / "src" / "main" / "res" / "drawable-nodpi"
-# Brand logos found the app's way (name-suggestion-index -> Wikidata -> Commons), kept for offline runs.
-BRAND_LOGOS = ROOT / "scripts" / "logos"
-USER_AGENT = "Carburants-AAOS-screenshots/1.0 (+https://github.com/juju35/aaos-carburants)"
-NSI_URL = "https://raw.githubusercontent.com/osmlab/name-suggestion-index/main/data/brands/amenity/fuel.json"
+BRAND_LOGOS_JSON = ROOT / "app" / "src" / "main" / "res" / "raw" / "brand_logos.json"
 OUT = ROOT / "screenshots"
 WIDTH, HEIGHT = 1408, 792
 ZOOM = 14
@@ -68,7 +64,6 @@ STATIONS = [
         "brand": "Total Access",
         "lat": 48.1235,
         "lon": -1.6905,
-        "logo": "logo_total_access.png",
         "status": ("Ouvert 24h/24", "open"),
         "prices": {"gazole": 1.719, "e10": 1.759, "sp98": None},
     },
@@ -85,7 +80,6 @@ STATIONS = [
         "brand": "TotalEnergies",
         "lat": 48.1012,
         "lon": -1.6838,
-        "logo": "logo_totalenergies.png",
         "address": "Rue de l'Alma",
         "status": ("Ouvert 24h/24", "open"),
         "prices": {"gazole": 1.769, "sp95": 1.839, "sp98": 1.879, "e10": 1.789, "e85": None, "gplc": 1.049},
@@ -155,7 +149,7 @@ def data_uri(path: Path) -> str:
     return "data:image/png;base64," + base64.b64encode(path.read_bytes()).decode()
 
 
-# ── Brand logos, as the app finds them (data/BrandIndex.kt, data/BrandCache.kt) ──
+# ── Brand logos shipped with the app (data/BrandLogos.kt) ────────────────────
 
 
 def brand_key(name):
@@ -163,120 +157,32 @@ def brand_key(name):
     return "".join(c for c in unicodedata.normalize("NFD", name).lower() if c.isascii() and c.isalnum())
 
 
-def http_get(url):
-    with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": USER_AGENT}), timeout=30) as resp:
-        return resp.read()
-
-
 @cache
-def brand_index():
-    """Brand name -> Wikidata id, from the name-suggestion-index (brands used in France first)."""
-    items = json.loads(http_get(NSI_URL))["items"]
-
-    def rank(item):
-        loc = item.get("locationSet") or {}
-        include = [str(x).lower() for x in loc.get("include", [])]
-        if "fr" in [str(x).lower() for x in loc.get("exclude", [])]:
-            return 3
-        if any(x == "fr" or x.startswith(("fr-", "fr.")) for x in include):
-            return 0
-        return 1 if "150" in include else 2 if ("001" in include or not include) else 3
-
-    index = {}
-    for item in sorted(items, key=rank):
-        qid = (item.get("tags") or {}).get("brand:wikidata", "")
-        if rank(item) > 2 or not qid.startswith("Q"):
-            continue
-        tags = item["tags"]
-        for name in [
-            item.get("displayName", ""),
-            tags.get("brand", ""),
-            tags.get("name", ""),
-            *item.get("matchNames", []),
-        ]:
-            if brand_key(name):
-                index.setdefault(brand_key(name), qid)
-    return index
+def shipped_entries():
+    """(key, logo file, dark tile), longest keys first, from the JSON file the app reads."""
+    brands = json.loads(BRAND_LOGOS_JSON.read_text())["brands"]
+    entries = [(k, LOGOS / f"{b['logo']}.png", b.get("dark", False)) for b in brands for k in b["keys"]]
+    return sorted(entries, key=lambda e: -len(e[0]))
 
 
-def wikidata_claims(qid):
-    url = "https://www.wikidata.org/w/api.php?" + urllib.parse.urlencode(
-        {"action": "wbgetentities", "ids": qid, "props": "claims", "format": "json"}
-    )
-    return json.loads(http_get(url))["entities"][qid].get("claims", {})
-
-
-def current_value(claims, prop, kind):
-    """Value of the current statement: preferred rank, else no end time (P582), else the last one."""
-    usable = [
-        c
-        for c in claims.get(prop, [])
-        if c.get("rank") != "deprecated" and isinstance(c.get("mainsnak", {}).get("datavalue", {}).get("value"), kind)
-    ]
-    if not usable:
-        return None
-    preferred = [c for c in usable if c.get("rank") == "preferred"]
-    current = [c for c in usable if "P582" not in (c.get("qualifiers") or {})]
-    return (preferred[0] if preferred else (current or usable)[-1])["mainsnak"]["datavalue"]["value"]
-
-
-def logo_file(claims):
-    """P8972 (small logo or icon), else P154 (logo image)."""
-    return next((f for p in ("P8972", "P154") if (f := current_value(claims, p, str))), None)
-
-
-def wikidata_logo(qid):
-    """(Commons file, entity it comes from): the brand's, else its parent organisation's (P749) or whole (P361)."""
-    claims = wikidata_claims(qid)
-    if file := logo_file(claims):
-        return file, qid
-    for prop in ("P749", "P361"):
-        parent = (current_value(claims, prop, dict) or {}).get("id")
-        if parent and (file := logo_file(wikidata_claims(parent))):
-            return file, parent
-    return None, None
-
-
-def record_source(brand, entry):
-    path = BRAND_LOGOS / "sources.json"
-    sources = json.loads(path.read_text()) if path.exists() else {}
-    sources[brand] = entry
-    BRAND_LOGOS.mkdir(exist_ok=True)
-    path.write_text(json.dumps(sources, indent=2, ensure_ascii=False, sort_keys=True) + "\n")
-
-
-def brand_logo(brand):
-    """Cached PNG of the brand's logo, downloaded once; None when there is none or no network."""
-    path = BRAND_LOGOS / f"{brand_key(brand)}.png"
-    if path.exists():
-        return path
-    try:
-        words = brand.split()
-        qid = next(
-            (q for n in range(len(words), 0, -1) if (q := brand_index().get(brand_key(" ".join(words[:n]))))), None
-        )
-        file, source = wikidata_logo(qid) if qid else (None, None)
-        if not file:
-            record_source(brand, {"wikidata": qid, "logo": None})
-            return None
-        url = f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(file.replace(' ', '_'))}?width=256"
-        image = Image.open(io.BytesIO(http_get(url))).convert("RGBA")
-    except Exception as err:  # Offline: initials, as the app does until the logo is there.
-        print(f"logo for {brand} not downloaded: {err}")
-        return None
-    image.save(path, "PNG", optimize=True)
-    record_source(brand, {"wikidata": qid, "logo_from": source, "commons_file": file})
-    print(f"downloaded {path.relative_to(ROOT)}")
-    return path
+def shipped_logo(*names):
+    """BrandLogos.find: the brand first, then the station name; whole key, or its start from 4 letters."""
+    for name in filter(None, names):
+        key = brand_key(name)
+        for k, path, dark in shipped_entries():
+            if key and (key == k or (len(k) >= 4 and key.startswith(k))):
+                return path, dark
+    return None, False
 
 
 def logo(st, size):
     """Logo on a white tile, else the initials badge (Badges.logoTile / initialsBadge)."""
     radius = round(size * 0.22)
-    path = LOGOS / st["logo"] if st.get("logo") else brand_logo(st["brand"])
+    path, dark = shipped_logo(st["brand"], st["name"])
     if path:
+        background = "#202124" if dark else "#fff"
         return (
-            f'<div class="tile" style="width:{size}px;height:{size}px;border-radius:{radius}px;background:#fff">'
+            f'<div class="tile" style="width:{size}px;height:{size}px;border-radius:{radius}px;background:{background}">'
             f'<img src="{data_uri(path)}" style="width:80%;height:80%;object-fit:contain"></div>'
         )
     return (

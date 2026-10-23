@@ -3,22 +3,25 @@ package me.jstephan.carburants.data
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.util.LruCache
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.jstephan.carburants.R
 import me.jstephan.carburants.ui.Badges
 import java.io.File
 import java.security.MessageDigest
 
-/** Station logos: bundled (Total), downloaded from Wikimedia Commons, or an initials badge. */
+/** Station logos: shipped with the app, else downloaded from Wikimedia Commons, else an initials badge. */
 class LogoLoader internal constructor(private val context: Context) {
+    private val shipped = BrandLogos(context)
     private val downloaded = LruCache<String, Bitmap>(48)
     private val tiles = LruCache<String, Bitmap>(64)
     private val dir = File(context.cacheDir, "logos").apply { mkdirs() }
 
-    /** Logo URL to download for this station, null when bundled or unknown. */
-    fun remoteUrl(station: Station): String? = if (bundled(station.brand) != null) null else station.logoUrl
+    private fun shippedLogo(station: Station) = shipped.find(station.brand, station.name)
+
+    /** Logo URL to download for this station, null when shipped or unknown. */
+    fun remoteUrl(station: Station): String? = if (shippedLogo(station) != null) null else station.logoUrl
 
     /** Download the logos not in memory yet. True when at least one is new. */
     suspend fun preload(urls: Collection<String>): Boolean = withContext(Dispatchers.IO) {
@@ -35,18 +38,20 @@ class LogoLoader internal constructor(private val context: Context) {
 
     /** The station's image, [size] px square. Never null: falls back to initials. */
     fun stationBitmap(station: Station, size: Int): Bitmap {
-        val res = bundled(station.brand)
+        val logo = shippedLogo(station)
         val url = station.logoUrl
         val source = when {
-            res != null -> "res:$res"
+            logo != null -> "res:${logo.res}"
             url != null && downloaded.get(url) != null -> url
             else -> "initials:${station.brand ?: station.name}"
         }
         val key = "$size|$source"
         tiles.get(key)?.let { return it }
         val bitmap = when {
-            res != null -> BitmapFactory.decodeResource(context.resources, res)?.let { Badges.logoTile(it, size) }
-            url != null -> downloaded.get(url)?.let { Badges.logoTile(it, size) }
+            logo != null -> BitmapFactory.decodeResource(context.resources, logo.res)?.let {
+                Badges.logoTile(it, size, if (logo.dark) DARK_TILE else Color.WHITE)
+            }
+            url != null -> downloaded.get(url)?.let { Badges.logoTile(it, size, Color.WHITE) }
             else -> null
         } ?: Badges.initialsBadge(station.brand ?: station.name, size)
         tiles.put(key, bitmap)
@@ -66,16 +71,8 @@ class LogoLoader internal constructor(private val context: Context) {
     private fun sha1(text: String): String =
         MessageDigest.getInstance("SHA-1").digest(text.encodeToByteArray()).joinToString("") { "%02x".format(it) }
 
-    companion object {
-        // Sub-brands share their network's logo in Wikidata: shipped with the app, as in the card.
-        private val TOTAL_ACCESS = Regex("\\btotal\\s*(energies)?\\s*access\\b", RegexOption.IGNORE_CASE)
-        private val TOTAL = Regex("^\\s*total(\\s*energies)?\\b", RegexOption.IGNORE_CASE)
-
-        fun bundled(brand: String?): Int? = when {
-            brand == null -> null
-            TOTAL_ACCESS.containsMatchIn(brand) -> R.drawable.logo_total_access
-            TOTAL.containsMatchIn(brand) -> R.drawable.logo_totalenergies
-            else -> null
-        }
+    private companion object {
+        // Tile for white logos (Roady).
+        const val DARK_TILE = 0xFF202124.toInt()
     }
 }

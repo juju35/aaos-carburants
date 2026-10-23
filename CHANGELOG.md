@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+### Features
+- Logos of 42 French fuel networks shipped with the app (Leclerc, Intermarché, Carrefour, U, Auchan, Casino, TotalEnergies, Esso, Shell, BP, Avia, Agip, Eni, Elan, Dyneff…): shown at once, even offline. Sub-brands match their network (Carrefour Market, Intermarché Super, Super U, U Express…), from the brand or else the station name.
+- Other brands: logo of the parent organisation in Wikidata (P749, else P361) when the brand has none of its own, and the brand found from its name through OpenStreetMap's name-suggestion-index when the OSM station doesn't say.
+
 ## 1.0.0
 
 ### Features

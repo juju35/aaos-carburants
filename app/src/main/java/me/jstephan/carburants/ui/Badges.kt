@@ -53,9 +53,9 @@ object Badges {
         return bitmap
     }
 
-    /** The logo on a white rounded tile, so dark or transparent logos stay readable on the car's dark UI. */
-    fun logoTile(logo: Bitmap, size: Int): Bitmap {
-        val (bitmap, canvas) = tile(size, Color.WHITE)
+    /** The logo on a rounded tile, white by default so dark or transparent logos stay readable on the car's dark UI. */
+    fun logoTile(logo: Bitmap, size: Int, background: Int = Color.WHITE): Bitmap {
+        val (bitmap, canvas) = tile(size, background)
         val inner = size * 0.80f
         val scale = minOf(inner / logo.width, inner / logo.height)
         val w = logo.width * scale

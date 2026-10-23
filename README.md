@@ -20,7 +20,7 @@ so it follows the platform's driving guidelines out of the box.
 
 Mock-ups of the templates as the car's host draws them (dark theme, 1408 × 792), made with made-up
 data by `python scripts/screenshots.py` (Playwright + Pillow, map from the OpenStreetMap tiles in `scripts/tiles`,
-brand logos found as the app does and kept in `scripts/logos`). The Screenshots workflow runs it again when the script changes.
+logos shipped with the app). The Screenshots workflow runs it again when the script or the logos change.
 
 ## Data
 
@@ -32,7 +32,7 @@ Same sources and logic as [ha-carburants-france](https://github.com/juju35/ha-ca
 | Station names and brands | [Aohzan/hass-prixcarburant](https://github.com/Aohzan/hass-prixcarburant) `stations_name.json` (Apache-2.0), weekly cache |
 | Brand fallback | OpenStreetMap via Overpass (`ref:FR:prix-carburants`, else nearest branded station within 300 m) |
 | Brand → Wikidata | OSM `brand:wikidata`, else OSM's [name-suggestion-index](https://github.com/osmlab/name-suggestion-index) (fuel brands, BSD-3-Clause), weekly cache |
-| Logos | Wikidata P8972 (small logo or icon), else P154 → Wikimedia Commons; TotalEnergies / Total Access shipped with the app |
+| Logos | 42 French networks shipped with the app (`res/raw/brand_logos.json`: Leclerc, Intermarché, Carrefour, U, Total, Esso, Shell, BP, Avia…), else Wikidata P8972 (small logo or icon) / P154, or the parent organisation's, via Wikimedia Commons |
 
 Lookups to OpenStreetMap and Wikidata are best effort and cached per station.
 
@@ -69,7 +69,7 @@ On a real car, third-party templated apps are installed through Google Play (int
 | Update release notes | Rewrites a release's notes from `CHANGELOG.md` (input `tag`) |
 | Clean up merged branches | Deletes merged branches after each pull request and weekly |
 | Stale | Marks and closes inactive issues and pull requests |
-| Screenshots | Makes the README screenshots again (with brand logos) and commits them when they change |
+| Screenshots | Makes the README screenshots again and commits them when they change |
 
 Release signing uses the repository secrets `SIGNING_KEYSTORE_BASE64` (the upload keystore, `base64 -w0`),
 `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD`; without them the release is signed
