@@ -1,0 +1,36 @@
+Trouvez la station la moins chère sur votre route, directement sur l'écran de votre voiture.
+
+Carburants est conçue pour Android Automotive OS : elle affiche les stations-service les plus proches de votre position, avec le prix des carburants que votre véhicule accepte, et lance la navigation vers la station choisie en un geste.
+
+★ Les stations autour de vous
+• Carte et liste des stations dans un rayon de 10 km (30 km s'il y en a peu)
+• Logo, nom, distance et état d'ouverture de chaque station
+• La moins chère mise en avant en vert, sur la liste comme sur la carte
+• Tri par prix ou par distance
+• Mise à jour automatique au fil du trajet
+
+★ Vos carburants
+• Choisissez un ou plusieurs carburants : Gazole, SP95, SP98, SP95-E10, E85, GPLc
+• Le prix de chacun est affiché, le tri se fait sur le moins cher
+• Les ruptures de stock sont signalées
+
+★ La fiche station
+• Prix et date de mise à jour
+• Prix de tous les autres carburants vendus
+• Adresse, horaires, services (boutique, lavage, gonflage…)
+• Bouton « Y aller » : l'itinéraire s'ouvre dans l'application de navigation de la voiture
+
+★ Pensée pour la conduite
+• Interface Android Automotive standard : grands éléments, lisible d'un coup d'œil, adaptée à la conduite
+• Aucun compte, aucune publicité, aucun suivi
+
+Couverture : France, stations déclarées au flux officiel des prix des carburants.
+
+Sources des données
+• Prix, ruptures, horaires et services : flux « Prix des carburants en France – flux instantané v2 » du Ministère de l'Économie, https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/ (Licence Ouverte Etalab 2.0), mis à jour toutes les 10 minutes
+• Noms des stations : fichier communautaire du projet hass-prixcarburant (Apache-2.0)
+• Enseignes : © contributeurs OpenStreetMap (ODbL) et Wikidata
+
+Carburants est une application indépendante. Elle n'est pas éditée par l'État, le Ministère de l'Économie ou une administration, et ne les représente pas. Elle n'est affiliée à aucune des enseignes citées ; leurs noms et logos appartiennent à leurs propriétaires respectifs et ne servent qu'à identifier les stations.
+
+Code source : https://github.com/juju35/aaos-carburants

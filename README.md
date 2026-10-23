@@ -65,15 +65,35 @@ On a real car, third-party templated apps are installed through Google Play (int
 | --- | --- |
 | Lint | pre-commit (whitespace, YAML/XML/TOML, Ruff for `scripts/`), Detekt + ktlint (Kotlin quality, dead code), Android lint, jscpd (duplication). Detekt and Android lint findings go to code scanning, shown on pull requests |
 | Build | Debug APK, as a build artifact |
-| Release | On `main`, when `appVersion` in `app/build.gradle.kts` has no tag yet: signed APK + App Bundle, notes from `CHANGELOG.md` |
+| Release | On `main`, when `appVersion` in `app/build.gradle.kts` has no tag yet: signed APK + App Bundle, notes from `CHANGELOG.md`; upload to Google Play when its secret is set |
 | Update release notes | Rewrites a release's notes from `CHANGELOG.md` (input `tag`) |
 | Clean up merged branches | Deletes merged branches after each pull request and weekly |
 | Stale | Marks and closes inactive issues and pull requests |
 | Screenshots | Makes the README screenshots again and commits them when they change |
 
-Release signing uses the repository secrets `SIGNING_KEYSTORE_BASE64` (the upload keystore, `base64 -w0`),
-`SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD`; without them the release is signed
-with the debug key (emulator / adb only, not accepted by Google Play).
+Release signing uses the repository secrets `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`,
+`SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD`; without them the release is signed with the debug key
+(emulator / adb only, not accepted by Google Play).
+
+## Google Play
+
+Listing texts, graphics, privacy policy and the Play Console answers are in [`play/`](play/README.md).
+
+**Upload key** (once, kept outside the repository; Play App Signing holds the app signing key):
+
+```sh
+keytool -genkeypair -v -keystore upload.jks -alias upload -keyalg RSA -keysize 4096 -validity 10000
+gh secret set SIGNING_KEYSTORE_BASE64 --body "$(base64 < upload.jks | tr -d '\n')"
+gh secret set SIGNING_STORE_PASSWORD
+gh secret set SIGNING_KEY_ALIAS --body upload
+gh secret set SIGNING_KEY_PASSWORD
+```
+
+**Automatic upload** (after the first release, uploaded by hand): a Google Cloud service account with the
+Google Play Android Developer API enabled, invited in Play Console › Users and permissions with release rights on
+the app; its JSON key goes in the `PLAY_SERVICE_ACCOUNT_JSON` secret. The Release workflow then sends each new
+version to `automotive:qa` (variable `PLAY_TRACK`) as a `draft` (variable `PLAY_RELEASE_STATUS`, `completed` once
+the app is published), with the notes of `play/whatsnew/fr-FR.txt`.
 
 Locally: `./gradlew detekt lintDebug` and `pre-commit run --all-files`.
 

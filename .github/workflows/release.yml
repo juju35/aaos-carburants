@@ -4,6 +4,9 @@ name: Release
 # bump appVersion in app/build.gradle.kts, add its CHANGELOG.md section, push, and the release follows.
 # Signed with the upload key from the secrets SIGNING_KEYSTORE_BASE64, SIGNING_STORE_PASSWORD,
 # SIGNING_KEY_ALIAS and SIGNING_KEY_PASSWORD; without them, with the debug key (emulator / adb only).
+# With the PLAY_SERVICE_ACCOUNT_JSON secret, the bundle also goes to Google Play: track from the
+# PLAY_TRACK variable (default automotive:qa, internal testing), status from PLAY_RELEASE_STATUS
+# (default draft, the only one allowed until the app is published; then completed).
 on:
   push:
     branches: [main]
@@ -15,6 +18,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -54,6 +59,9 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
             export SIGNING_KEYSTORE="$RUNNER_TEMP/upload.jks"
+          elif [ -n "$PLAY_JSON" ]; then
+            echo "::error::PLAY_SERVICE_ACCOUNT_JSON is set but not the signing secrets: Google Play refuses debug-signed bundles"
+            exit 1
           else
             echo "::warning::No signing secrets: release signed with the debug key (not accepted by Google Play)"
           fi
@@ -63,6 +71,13 @@ jobs:
           cp app/build/outputs/bundle/release/app-release.aab "carburants-$VERSION.aab"
           .github/scripts/release-notes.sh "$VERSION" > notes.md
           test -s notes.md
+          # Play release notes: play/whatsnew/<locale>.txt, 500 characters at most.
+          mkdir -p whatsnew
+          for f in play/whatsnew/*.txt; do
+            [ -f "$f" ] || continue
+            [ "$(wc -m < "$f")" -le 500 ] || { echo "::error file=$f::Longer than 500 characters"; exit 1; }
+            cp "$f" "whatsnew/whatsnew-$(basename "$f" .txt)"
+          done
 
       - name: Annotations
         if: failure()
@@ -80,3 +95,15 @@ jobs:
             carburants-${{ steps.version.outputs.version }}.aab
           body_path: notes.md
           make_latest: true
+
+      - name: Upload to Google Play
+        if: steps.version.outputs.exists == 'false' && env.PLAY_JSON != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ env.PLAY_JSON }}
+          packageName: me.jstephan.carburants
+          releaseFiles: carburants-${{ steps.version.outputs.version }}.aab
+          releaseName: ${{ steps.version.outputs.version }}
+          track: ${{ vars.PLAY_TRACK || 'automotive:qa' }}
+          status: ${{ vars.PLAY_RELEASE_STATUS || 'draft' }}
+          whatsNewDirectory: whatsnew

@@ -1,0 +1,2 @@
+• Le premier affichage est plus rapide : les noms des stations arrivent ensuite s'ils tardent.
+• Hors de France, un message indique que les prix couvrent la France uniquement.

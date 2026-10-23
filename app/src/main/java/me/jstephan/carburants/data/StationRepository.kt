@@ -42,18 +42,16 @@ class StationRepository private constructor(context: Context) {
     data class Result(val stations: List<Station>, val radiusKm: Int)
 
     /**
-     * Brand and logo lookups for these stations (those shown): OpenStreetMap per station,
-     * then the logo of each brand. Returns the stations again, by id, when something
-     * changed, else null.
+     * Names, brands and logos for these stations (those shown): the names file if it came
+     * after the list, OpenStreetMap per station, then the logo of each brand. Returns the
+     * stations again, by id, when one of them changed, else null.
      */
     suspend fun enrich(stations: List<Station>): Map<Long, Station>? {
+        brands.lookupStations(stations)
         val names = currentNames()
-        val osmChanged = brands.lookupStations(stations)
+        brands.lookupLogos(stations.map { decorate(it, names) }.mapNotNull { qid(it) }.toSet())
         val decorated = stations.map { decorate(it, names) }
-        val qids = decorated.mapNotNull { qid(it) }.toSet()
-        val logosChanged = brands.lookupLogos(qids)
-        if (!osmChanged && !logosChanged) return null
-        return decorated.associate { it.id to decorate(it, names) }
+        return if (decorated == stations) null else decorated.associateBy { it.id }
     }
 
     /** The brand's Wikidata id: from the OSM station, else from the brand name (name-suggestion-index). */
@@ -92,7 +90,9 @@ class StationRepository private constructor(context: Context) {
         const val RADIUS_KM = 10
         const val WIDE_RADIUS_KM = 30
         private const val MIN_RESULTS = 3
-        private const val NAMES_WAIT_MS = 6_000L
+        // The list must show within 10 s (car app quality DR-3): names that come later are
+        // added by enrich().
+        private const val NAMES_WAIT_MS = 2_500L
 
         private val GENERIC_NAMES =
             setOf("station", "station service", "stationservice", "carburant", "carburants", "essence", "fuel")

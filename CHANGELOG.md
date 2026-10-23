@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+### Changes
+- The list shows sooner: it waits 2.5 s at most for the station names file (car app quality: content within 10 s); names that arrive later are added with the brands and logos.
+- Outside France, the empty list says the prices cover France only.
+- Google Play: store listing, graphics, privacy policy and Data safety answers in `play/`; the Release workflow uploads the bundle to the Android Automotive OS internal testing track when the Play secret is set.
+
 ## 1.1.0
 
 ### Features
