@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Carburants</string>
+
+    <string name="list_title">Stations à proximité</string>
+    <string name="no_station">Aucune station %1$s dans un rayon de %2$d km</string>
+    <string name="sort_price">Prix</string>
+    <string name="sort_distance">Distance</string>
+    <string name="error_network">Impossible de récupérer les prix. Vérifiez la connexion.</string>
+    <string name="error_location">Position indisponible pour le moment.</string>
+    <string name="error_permission">La localisation n\'est pas autorisée.</string>
+    <string name="retry">Réessayer</string>
+
+    <string name="permission_title">Localisation</string>
+    <string name="permission_message">Carburants utilise votre position pour trouver les stations les plus proches.</string>
+    <string name="allow">Autoriser</string>
+    <string name="permission_denied">Autorisation refusée</string>
+
+    <string name="navigate">Y aller</string>
+    <string name="navigation_unavailable">Aucune application de navigation disponible</string>
+
+    <string name="choose_fuel">Carburant</string>
+    <string name="price_per_litre">%1$s · %2$s/L</string>
+    <string name="updated">Mis à jour %1$s</string>
+    <string name="rupture">Rupture</string>
+    <string name="rupture_since">Rupture depuis %1$s</string>
+    <string name="no_price">Prix indisponible</string>
+    <string name="other_fuels">Autres carburants</string>
+
+    <string name="always_open">Ouvert 24h/24</string>
+    <string name="open_until">Ouvert · ferme à %1$s</string>
+    <string name="automate">Automate 24h/24</string>
+    <string name="closed">Fermé</string>
+    <string name="closed_opens_at">Fermé · ouvre à %1$s</string>
+    <string name="closed_opens_tomorrow">Fermé · ouvre demain à %1$s</string>
+    <string name="closed_opens_day">Fermé · ouvre %1$s à %2$s</string>
+    <string name="hours_unknown">Horaires non communiqués</string>
+    <string name="highway">Autoroute</string>
+
+    <string name="fuel_gazole">Diesel</string>
+    <string name="fuel_sp95">Sans plomb 95</string>
+    <string name="fuel_sp98">Sans plomb 98</string>
+    <string name="fuel_e10">Sans plomb 95-E10</string>
+    <string name="fuel_e85">Superéthanol</string>
+    <string name="fuel_gplc">Gaz de pétrole liquéfié</string>
+</resources>

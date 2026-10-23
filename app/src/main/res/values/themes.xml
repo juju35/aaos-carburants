@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colours the templates host uses for CarColor.PRIMARY / SECONDARY. -->
+    <style name="CarAppTheme">
+        <item name="carColorPrimary">@color/brand</item>
+        <item name="carColorPrimaryDark">@color/brand_dark</item>
+        <item name="carColorSecondary">@color/accent</item>
+        <item name="carColorSecondaryDark">@color/accent_dark</item>
+    </style>
+</resources>

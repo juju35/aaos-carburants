@@ -1,0 +1,99 @@
+package me.jstephan.carburants.ui
+
+import android.content.Context
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.format.DateUtils
+import androidx.car.app.model.CarColor
+import androidx.car.app.model.CarIcon
+import androidx.car.app.model.Distance
+import androidx.car.app.model.DistanceSpan
+import androidx.car.app.model.ForegroundCarColorSpan
+import androidx.core.graphics.drawable.IconCompat
+import me.jstephan.carburants.R
+import me.jstephan.carburants.data.Station
+import java.time.DayOfWeek
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.format.TextStyle
+import java.util.Locale
+
+internal object Format {
+    private val FR = Locale.FRANCE
+
+    fun price(value: Double): String = String.format(FR, "%.3f €", value)
+
+    fun relative(instant: Instant): CharSequence =
+        DateUtils.getRelativeTimeSpanString(instant.toEpochMilli(), System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)
+
+    /** Distance for a DistanceSpan: metres under 1 km, km with one decimal under 10 km. */
+    fun distance(km: Double): Distance = when {
+        km < 1 -> Distance.create(Math.round(km * 1000 / 10) * 10.0, Distance.UNIT_METERS)
+        km < 10 -> Distance.create(Math.round(km * 10) / 10.0, Distance.UNIT_KILOMETERS_P1)
+        else -> Distance.create(Math.round(km).toDouble(), Distance.UNIT_KILOMETERS)
+    }
+
+    fun SpannableStringBuilder.appendDistance(km: Double): SpannableStringBuilder =
+        append(" ", DistanceSpan.create(distance(km)), Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+
+    fun SpannableStringBuilder.appendColored(text: CharSequence, color: CarColor): SpannableStringBuilder =
+        append(text, ForegroundCarColorSpan.create(color), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+    fun icon(context: Context, res: Int): CarIcon =
+        CarIcon.Builder(IconCompat.createWithResource(context, res)).setTint(CarColor.DEFAULT).build()
+
+    // ── Opening status, as carbOpening() in the card ─────────────────────────
+
+    enum class OpenState { OPEN, CLOSED, ALWAYS, AUTOMATE }
+
+    data class Opening(val state: OpenState, val text: String) {
+        val color: CarColor
+            get() = when (state) {
+                OpenState.OPEN, OpenState.ALWAYS -> CarColor.GREEN
+                OpenState.AUTOMATE -> CarColor.YELLOW
+                OpenState.CLOSED -> CarColor.RED
+            }
+    }
+
+    private fun minutes(hhmm: String): Int {
+        val parts = hhmm.split(":")
+        return (parts.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (parts.getOrNull(1)?.toIntOrNull() ?: 0)
+    }
+
+    fun opening(context: Context, station: Station, now: LocalDateTime = LocalDateTime.now()): Opening? {
+        val hours = station.hours
+        val day = now.dayOfWeek.value
+        val current = now.hour * 60 + now.minute
+        val always = hours.size == 7 && hours.all { d ->
+            !d.closed && d.ranges.any { it.first == "00:00" && minutes(it.second) >= 23 * 60 + 59 }
+        }
+        if (always) return Opening(OpenState.ALWAYS, context.getString(R.string.always_open))
+
+        val today = hours.firstOrNull { it.day == day }
+        if (today != null && !today.closed) {
+            today.ranges.firstOrNull { current >= minutes(it.first) && current < minutes(it.second) }?.let {
+                return Opening(OpenState.OPEN, context.getString(R.string.open_until, it.second))
+            }
+        }
+        if (station.automate24) return Opening(OpenState.AUTOMATE, context.getString(R.string.automate))
+        if (hours.isEmpty()) return null
+
+        if (today != null && !today.closed) {
+            today.ranges.firstOrNull { minutes(it.first) > current }?.let {
+                return Opening(OpenState.CLOSED, context.getString(R.string.closed_opens_at, it.first))
+            }
+        }
+        for (k in 1..7) {
+            val next = hours.firstOrNull { it.day == ((day - 1 + k) % 7) + 1 } ?: continue
+            if (next.closed || next.ranges.isEmpty()) continue
+            val time = next.ranges.first().first
+            val text = if (k == 1) {
+                context.getString(R.string.closed_opens_tomorrow, time)
+            } else {
+                context.getString(R.string.closed_opens_day, DayOfWeek.of(next.day).getDisplayName(TextStyle.SHORT, FR), time)
+            }
+            return Opening(OpenState.CLOSED, text)
+        }
+        return Opening(OpenState.CLOSED, context.getString(R.string.closed))
+    }
+}
