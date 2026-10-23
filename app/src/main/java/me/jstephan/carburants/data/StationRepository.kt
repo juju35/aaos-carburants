@@ -6,6 +6,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -14,10 +15,16 @@ class StationRepository private constructor(context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val stationNames = StationNames(context)
     private val brands = BrandCache(context)
+    private val brandIndex = BrandIndex(context)
     val logos = LogoLoader(context)
 
     // Started right away: the first download (~1 MB) must not hold up the first list.
     private var names: Deferred<Map<String, StationNames.Entry>> = scope.async { stationNames.load() }
+
+    // Same for the brand index: until it is there, logos come from OpenStreetMap's brand:wikidata only.
+    init {
+        scope.launch { runCatching { brandIndex.load() } }
+    }
 
     /** Nearest stations selling one of [fuels], within [RADIUS_KM], widened to [WIDE_RADIUS_KM] when there are few. */
     suspend fun nearby(latitude: Double, longitude: Double, fuels: List<Fuel>): Result {
@@ -35,14 +42,23 @@ class StationRepository private constructor(context: Context) {
     data class Result(val stations: List<Station>, val radiusKm: Int)
 
     /**
-     * Brand and logo lookups for these stations (those shown). Returns the stations again,
-     * by id, when something changed, else null.
+     * Brand and logo lookups for these stations (those shown): OpenStreetMap per station,
+     * then the logo of each brand. Returns the stations again, by id, when something
+     * changed, else null.
      */
     suspend fun enrich(stations: List<Station>): Map<Long, Station>? {
-        if (!brands.lookup(stations)) return null
         val names = currentNames()
-        return stations.associate { it.id to decorate(it, names) }
+        val osmChanged = brands.lookupStations(stations)
+        val decorated = stations.map { decorate(it, names) }
+        val qids = decorated.mapNotNull { qid(it) }.toSet()
+        val logosChanged = brands.lookupLogos(qids)
+        if (!osmChanged && !logosChanged) return null
+        return decorated.associate { it.id to decorate(it, names) }
     }
+
+    /** The brand's Wikidata id: from the OSM station, else from the brand name (name-suggestion-index). */
+    private fun qid(station: Station): String? =
+        brands.peek(station.id)?.wikidata ?: brandIndex.qid(station.brand) ?: brandIndex.qid(brands.peek(station.id)?.brand)
 
     /** Download the logos of these stations. True when one became available. */
     suspend fun loadLogos(stations: List<Station>): Boolean =
@@ -68,7 +84,8 @@ class StationRepository private constructor(context: Context) {
             ?: usefulOsmName(info?.osmName, info?.brand)
             ?: brand?.let { "$it $city".trim() }
             ?: "${station.address.ifEmpty { "Station" }} $city".trim()
-        return station.copy(name = title, brand = brand, logoUrl = info?.logo)
+        val decorated = station.copy(name = title, brand = brand)
+        return decorated.copy(logoUrl = brands.logo(qid(decorated)))
     }
 
     companion object {
