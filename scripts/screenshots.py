@@ -36,32 +36,58 @@ PANEL_RIGHT = 24 + 520
 
 STATIONS = [
     {
-        "name": "Leclerc Rennes Colombier", "brand": "E.Leclerc", "lat": 48.1120, "lon": -1.6575,
-        "address": "Boulevard de la Liberté", "status": ("Ouvert · ferme à 21:00", "open"),
+        "name": "Leclerc Rennes Colombier",
+        "brand": "E.Leclerc",
+        "lat": 48.1120,
+        "lon": -1.6575,
+        "address": "Boulevard de la Liberté",
+        "status": ("Ouvert · ferme à 21:00", "open"),
         "prices": {"gazole": 1.689, "sp95": 1.789, "sp98": 1.849, "e10": 1.729, "e85": 0.829, "gplc": None},
         "extras": "Automate 24h/24 · Boutique alimentaire · Lavage",
     },
     {
-        "name": "Super U Rennes Sud", "brand": "Super U", "lat": 48.0985, "lon": -1.6733,
-        "status": ("Ouvert · ferme à 20:00", "open"), "prices": {"gazole": 1.709, "e10": 1.749, "sp98": 1.859},
+        "name": "Super U Rennes Sud",
+        "brand": "Super U",
+        "lat": 48.0985,
+        "lon": -1.6733,
+        "status": ("Ouvert · ferme à 20:00", "open"),
+        "prices": {"gazole": 1.709, "e10": 1.749, "sp98": 1.859},
     },
     {
-        "name": "Total Access Rennes Saint-Malo", "brand": "Total Access", "lat": 48.1235, "lon": -1.6905,
-        "logo": "logo_total_access.png", "status": ("Ouvert 24h/24", "open"), "prices": {"gazole": 1.719, "e10": 1.759, "sp98": None},
+        "name": "Total Access Rennes Saint-Malo",
+        "brand": "Total Access",
+        "lat": 48.1235,
+        "lon": -1.6905,
+        "logo": "logo_total_access.png",
+        "status": ("Ouvert 24h/24", "open"),
+        "prices": {"gazole": 1.719, "e10": 1.759, "sp98": None},
     },
     {
-        "name": "Carrefour Market Thabor", "brand": "Carrefour Market", "lat": 48.1188, "lon": -1.6921,
-        "status": ("Ouvert · ferme à 20:30", "open"), "prices": {"gazole": 1.749, "e10": 1.769},
+        "name": "Carrefour Market Thabor",
+        "brand": "Carrefour Market",
+        "lat": 48.1188,
+        "lon": -1.6921,
+        "status": ("Ouvert · ferme à 20:30", "open"),
+        "prices": {"gazole": 1.749, "e10": 1.769},
     },
     {
-        "name": "TotalEnergies Rennes Alma", "brand": "TotalEnergies", "lat": 48.1012, "lon": -1.6838,
-        "logo": "logo_totalenergies.png", "address": "Rue de l'Alma", "status": ("Ouvert 24h/24", "open"),
+        "name": "TotalEnergies Rennes Alma",
+        "brand": "TotalEnergies",
+        "lat": 48.1012,
+        "lon": -1.6838,
+        "logo": "logo_totalenergies.png",
+        "address": "Rue de l'Alma",
+        "status": ("Ouvert 24h/24", "open"),
         "prices": {"gazole": 1.769, "sp95": 1.839, "sp98": 1.879, "e10": 1.789, "e85": None, "gplc": 1.049},
         "extras": "Boutique alimentaire · Lavage · Gonflage",
     },
     {
-        "name": "Esso Rennes Nord", "brand": "Esso", "lat": 48.1255, "lon": -1.6760,
-        "status": ("Automate 24h/24", "automate"), "prices": {"gazole": 1.789, "e10": 1.809, "sp98": 1.899},
+        "name": "Esso Rennes Nord",
+        "brand": "Esso",
+        "lat": 48.1255,
+        "lon": -1.6760,
+        "status": ("Automate 24h/24", "automate"),
+        "prices": {"gazole": 1.789, "e10": 1.809, "sp98": 1.899},
     },
 ]
 
@@ -269,8 +295,8 @@ def list_page():
         cls = {"open": "green", "automate": "yellow", "closed": "red"}[state]
         rows.append(
             f"""<div class="row">{logo(st, 72)}<div class="txt">
-            <div class="t">{html.escape(st['name'])}</div>
-            <div class="l">{fmt_distance(st['distance'])} · {price_html}</div>
+            <div class="t">{html.escape(st["name"])}</div>
+            <div class="l">{fmt_distance(st["distance"])} · {price_html}</div>
             <div class="l secondary">Rennes · <span class="{cls}">{status}</span></div></div></div>"""
         )
     markers = []
@@ -283,11 +309,11 @@ def list_page():
     hx, hy = HERE_PX
     body = f"""
     <img class="map" src="{map_image()}">
-    {''.join(markers)}
+    {"".join(markers)}
     <div class="me" style="left:{hx - 16}px;top:{hy - 16}px"></div>
     <div class="panel">
-      <div class="header"><div class="appicon">{svg(GAS, 32, '#fff')}</div>Stations à proximité</div>
-      {''.join(rows)}
+      <div class="header"><div class="appicon">{svg(GAS, 32, "#fff")}</div>Stations à proximité</div>
+      {"".join(rows)}
     </div>
     <div class="strip">
       <div class="chip">{svg(GAS, 26)}E10, SP98</div>
@@ -344,12 +370,12 @@ def detail_page():
         for img, t, texts in rows
     )
     body = f"""
-    <div class="header" style="height:104px"><div class="round">{svg(BACK, 32)}</div>{html.escape(st['name'])}</div>
+    <div class="header" style="height:104px"><div class="round">{svg(BACK, 32)}</div>{html.escape(st["name"])}</div>
     <div class="pane">
       <div class="rows">{rows_html}</div>
       <div class="side">{logo(st, 236)}</div>
     </div>
-    <div class="actions"><div class="primary">{svg(NAV, 30, '#0b0c0e')}Y aller</div></div>
+    <div class="actions"><div class="primary">{svg(NAV, 30, "#0b0c0e")}Y aller</div></div>
     """
     css = """
     .pane { display: flex; gap: 40px; padding: 0 40px 0 40px; }
@@ -370,8 +396,8 @@ def detail_page():
 
 def fuel_page():
     rows = []
-    for i, fuel in enumerate(FUELS):
-        key, label, code, *_ , desc = fuel
+    for fuel in FUELS:
+        key, label, code, *_, desc = fuel
         radio = '<div class="switch on"><div></div></div>' if key in CHOSEN else '<div class="switch"><div></div></div>'
         rows.append(
             f'<div class="frow">{fuel_badge(fuel, 64)}<div class="ft"><div class="t">{label}</div>'
@@ -379,7 +405,7 @@ def fuel_page():
         )
     body = f"""
     <div class="header" style="height:96px"><div class="round">{svg(BACK, 32)}</div>Carburants de votre véhicule</div>
-    <div class="list">{''.join(rows)}</div>
+    <div class="list">{"".join(rows)}</div>
     """
     css = """
     .list { padding: 0 40px; }

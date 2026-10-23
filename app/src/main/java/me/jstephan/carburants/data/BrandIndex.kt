@@ -1,7 +1,6 @@
 package me.jstephan.carburants.data
 
 import android.content.Context
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -16,7 +15,7 @@ import java.text.Normalizer
  * `brand:wikidata` but its brand is known. Downloaded at most once a week, cached.
  */
 internal class BrandIndex(context: Context) {
-    private val file = File(context.filesDir, "nsi_fuel.json")
+    private val download = CachedDownload(File(context.filesDir, "nsi_fuel.json"), URL, REFRESH_MS)
     @Volatile private var index: Map<String, String>? = null
 
     /**
@@ -35,23 +34,7 @@ internal class BrandIndex(context: Context) {
 
     suspend fun load() = withContext(Dispatchers.IO) {
         if (index != null) return@withContext
-        val stale = !file.exists() || System.currentTimeMillis() - file.lastModified() > REFRESH_MS
-        if (stale) {
-            try {
-                val bytes = Http.get(URL, timeoutMs = 30_000)
-                val parsed = parse(bytes.decodeToString())
-                if (parsed.isNotEmpty()) {
-                    val tmp = File(file.parentFile, file.name + ".tmp")
-                    tmp.writeBytes(bytes)
-                    tmp.renameTo(file)
-                    index = parsed
-                    return@withContext
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not download the brand index, using the cached copy", e)
-            }
-        }
-        index = if (file.exists()) runCatching { parse(file.readText()) }.getOrDefault(emptyMap()) else emptyMap()
+        index = download.load(::parse) { it.isEmpty() }.orEmpty()
     }
 
     /** Brands used in France (or worldwide / Europe) first: a French brand wins a name clash. */
@@ -91,7 +74,6 @@ internal class BrandIndex(context: Context) {
         if (array == null) emptyList() else (0 until array.length()).mapNotNull { array.opt(it) as? String }
 
     companion object {
-        private const val TAG = "BrandIndex"
         private const val URL =
             "https://raw.githubusercontent.com/osmlab/name-suggestion-index/main/data/brands/amenity/fuel.json"
         private const val REFRESH_MS = 7L * 24 * 3600 * 1000

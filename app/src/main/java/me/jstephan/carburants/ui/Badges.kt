@@ -30,26 +30,28 @@ object Badges {
         return text.uppercase()
     }
 
-    /** Coloured rounded square with the brand's initials. */
-    fun initialsBadge(label: String, size: Int): Bitmap {
+    /** A [size] px rounded square filled with [color], and a canvas to draw on it. */
+    private fun tile(size: Int, color: Int): Pair<Bitmap, Canvas> {
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = brandColor(label) }
         val radius = size * 0.22f
-        canvas.drawRoundRect(RectF(0f, 0f, size.toFloat(), size.toFloat()), radius, radius, paint)
+        canvas.drawRoundRect(
+            RectF(0f, 0f, size.toFloat(), size.toFloat()), radius, radius,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color },
+        )
+        return bitmap to canvas
+    }
+
+    /** Coloured rounded square with the brand's initials. */
+    fun initialsBadge(label: String, size: Int): Bitmap {
+        val (bitmap, canvas) = tile(size, brandColor(label))
         drawCentered(canvas, initials(label).ifEmpty { "?" }, size / 2f, size / 2f, size * 0.42f, Color.WHITE)
         return bitmap
     }
 
     /** The logo on a white rounded tile, so dark or transparent logos stay readable on the car's dark UI. */
     fun logoTile(logo: Bitmap, size: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val radius = size * 0.22f
-        canvas.drawRoundRect(
-            RectF(0f, 0f, size.toFloat(), size.toFloat()), radius, radius,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.WHITE },
-        )
+        val (bitmap, canvas) = tile(size, Color.WHITE)
         val inner = size * 0.80f
         val scale = minOf(inner / logo.width, inner / logo.height)
         val w = logo.width * scale
@@ -61,13 +63,7 @@ object Badges {
 
     /** Pump-coloured square: the name at the pump and its EU identifier under it. */
     fun fuelBadge(fuel: Fuel, size: Int): Bitmap {
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        val radius = size * 0.22f
-        canvas.drawRoundRect(
-            RectF(0f, 0f, size.toFloat(), size.toFloat()), radius, radius,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = fuel.color },
-        )
+        val (bitmap, canvas) = tile(size, fuel.color)
         val label = if (fuel == Fuel.E10) "SP95" else fuel.label
         if (fuel.code.isEmpty()) {
             drawCentered(canvas, label, size / 2f, size / 2f, fitText(label, size * 0.30f, size * 0.84f), fuel.onColor)

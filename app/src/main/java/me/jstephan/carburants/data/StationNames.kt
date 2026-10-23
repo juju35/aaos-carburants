@@ -1,7 +1,6 @@
 package me.jstephan.carburants.data
 
 import android.content.Context
-import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -16,25 +15,10 @@ import java.io.File
 internal class StationNames(context: Context) {
     data class Entry(val name: String, val brand: String)
 
-    private val file = File(context.filesDir, "stations_name.json")
+    private val download = CachedDownload(File(context.filesDir, "stations_name.json"), URL, REFRESH_MS)
 
     suspend fun load(): Map<String, Entry> = withContext(Dispatchers.IO) {
-        val stale = !file.exists() || System.currentTimeMillis() - file.lastModified() > REFRESH_MS
-        if (stale) {
-            try {
-                val bytes = Http.get(URL, timeoutMs = 30_000)
-                val parsed = parse(bytes.decodeToString())
-                if (parsed.isNotEmpty()) {
-                    val tmp = File(file.parentFile, file.name + ".tmp")
-                    tmp.writeBytes(bytes)
-                    tmp.renameTo(file)
-                    return@withContext parsed
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not download the station names, using the cached copy", e)
-            }
-        }
-        if (file.exists()) runCatching { parse(file.readText()) }.getOrDefault(emptyMap()) else emptyMap()
+        download.load(::parse) { it.isEmpty() }.orEmpty()
     }
 
     private fun parse(text: String): Map<String, Entry> {
@@ -50,7 +34,6 @@ internal class StationNames(context: Context) {
     }
 
     companion object {
-        private const val TAG = "StationNames"
         private const val URL =
             "https://raw.githubusercontent.com/Aohzan/hass-prixcarburant/refs/heads/master/" +
                 "custom_components/prix_carburant/stations_name.json"

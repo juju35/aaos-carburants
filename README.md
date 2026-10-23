@@ -30,7 +30,8 @@ Same sources and logic as [ha-carburants-france](https://github.com/juju35/ha-ca
 | Prices, shortages, hours, services | [Prix des carburants en France – flux instantané v2](https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/) (no key) |
 | Station names and brands | [Aohzan/hass-prixcarburant](https://github.com/Aohzan/hass-prixcarburant) `stations_name.json` (Apache-2.0), weekly cache |
 | Brand fallback | OpenStreetMap via Overpass (`ref:FR:prix-carburants`, else nearest branded station within 300 m) |
-| Logos | Wikidata P154 → Wikimedia Commons; TotalEnergies / Total Access shipped with the app |
+| Brand → Wikidata | OSM `brand:wikidata`, else OSM's [name-suggestion-index](https://github.com/osmlab/name-suggestion-index) (fuel brands, BSD-3-Clause), weekly cache |
+| Logos | Wikidata P8972 (small logo or icon), else P154 → Wikimedia Commons; TotalEnergies / Total Access shipped with the app |
 
 Lookups to OpenStreetMap and Wikidata are best effort and cached per station.
 
@@ -56,6 +57,23 @@ Test on an emulator from Android Studio's Device Manager with an **Automotive** 
 release builds only the hosts in the library's allowlist.
 
 On a real car, third-party templated apps are installed through Google Play (internal or closed testing track).
+
+## CI
+
+| Workflow | What |
+| --- | --- |
+| Lint | pre-commit (whitespace, YAML/XML/TOML, Ruff for `scripts/`), Detekt + ktlint (Kotlin quality, dead code), Android lint, jscpd (duplication). Detekt and Android lint findings go to code scanning, shown on pull requests |
+| Build | Debug APK, as a build artifact |
+| Release | On `main`, when `appVersion` in `app/build.gradle.kts` has no tag yet: signed APK + App Bundle, notes from `CHANGELOG.md` |
+| Update release notes | Rewrites a release's notes from `CHANGELOG.md` (input `tag`) |
+| Clean up merged branches | Deletes merged branches after each pull request and weekly |
+| Stale | Marks and closes inactive issues and pull requests |
+
+Release signing uses the repository secrets `SIGNING_KEYSTORE_BASE64` (the upload keystore, `base64 -w0`),
+`SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD`; without them the release is signed
+with the debug key (emulator / adb only, not accepted by Google Play).
+
+Locally: `./gradlew detekt lintDebug` and `pre-commit run --all-files`.
 
 ## License
 

@@ -1,0 +1,49 @@
+# Built on detekt's default config (buildUponDefaultConfig): only the differences are here.
+config:
+  validation: true
+
+complexity:
+  LongMethod:
+    threshold: 80
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 16
+  CyclomaticComplexMethod:
+    threshold: 20
+  NestedBlockDepth:
+    threshold: 5
+  TooManyFunctions:
+    thresholdInFiles: 25
+    thresholdInClasses: 20
+    thresholdInObjects: 20
+
+exceptions:
+  # Network and parsing code is best effort on purpose: any failure means "no data this time".
+  TooGenericExceptionCaught:
+    active: false
+  SwallowedException:
+    active: false
+
+style:
+  # Drawing ratios, HTTP codes and limits read better inline.
+  MagicNumber:
+    active: false
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    max: 6
+  LoopWithTooManyJumpStatements:
+    maxJumpCount: 3
+  # Dead code.
+  UnusedPrivateMember:
+    active: true
+  UnusedParameter:
+    active: true
+  UnusedPrivateProperty:
+    active: true
+  UnusedImports:
+    active: true
+
+formatting:
+  MaximumLineLength:
+    maxLineLength: 140

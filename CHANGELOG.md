@@ -1,0 +1,11 @@
+# Changelog
+
+## 1.0.0
+
+### Features
+- Android Automotive app (Android 12 / API 31 and later), Car App Library templates, POI category.
+- Map and list of the nearest stations (10 km, widened to 30 km when there are fewer than 3), with logo, name, distance, prices and opening status; the cheapest in green on the list and the map.
+- Choose the fuels your car takes (Gazole, SP95, SP98, E10, E85, GPLc): the list shows each of their prices, sorts and highlights on the cheapest of them. Sort by price or distance. Both remembered.
+- Station detail: your cheapest fuel there and its freshness, your other fuels, the others, address, hours, services, and **Y aller** to start navigation in the car's navigation app.
+- Automatic refresh after 2 km or 10 minutes.
+- Names, brands and logos as in ha-carburants-france: community names file, OpenStreetMap, OSM name-suggestion-index, Wikidata logos; TotalEnergies and Total Access logos shipped.

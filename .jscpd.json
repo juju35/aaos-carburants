@@ -1,0 +1,22 @@
+{
+  "minTokens": 50,
+  "threshold": 3,
+  "absolute": false,
+  "gitignore": true,
+  "format": [
+    "kotlin",
+    "python"
+  ],
+  "ignore": [
+    "**/build/**",
+    "**/.gradle/**",
+    "**/.git/**",
+    "**/scripts/tiles/**"
+  ],
+  "reporters": [
+    "console"
+  ],
+  "ignorePattern": [
+    "^import "
+  ]
+}
