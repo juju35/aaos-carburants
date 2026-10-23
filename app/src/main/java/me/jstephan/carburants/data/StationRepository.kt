@@ -90,6 +90,7 @@ class StationRepository private constructor(context: Context) {
         const val RADIUS_KM = 10
         const val WIDE_RADIUS_KM = 30
         private const val MIN_RESULTS = 3
+
         // The list must show within 10 s (car app quality DR-3): names that come later are
         // added by enrich().
         private const val NAMES_WAIT_MS = 2_500L
