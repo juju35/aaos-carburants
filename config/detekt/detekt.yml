@@ -44,6 +44,13 @@ style:
   UnusedImports:
     active: true
 
+# detekt-formatting doesn't read .editorconfig: same 140 columns here.
 formatting:
   MaximumLineLength:
+    maxLineLength: 140
+  ArgumentListWrapping:
+    maxLineLength: 140
+  ParameterListWrapping:
+    maxLineLength: 140
+  Wrapping:
     maxLineLength: 140

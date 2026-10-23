@@ -61,7 +61,8 @@ object Badges {
         val w = logo.width * scale
         val h = logo.height * scale
         val dst = RectF((size - w) / 2, (size - h) / 2, (size + w) / 2, (size + h) / 2)
-        canvas.drawBitmap(logo, Rect(0, 0, logo.width, logo.height), dst, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+        val src = Rect(0, 0, logo.width, logo.height)
+        canvas.drawBitmap(logo, src, dst, Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
         return bitmap
     }
 
