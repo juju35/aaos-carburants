@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -34,13 +34,13 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         if: steps.version.outputs.exists == 'false'
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
         if: steps.version.outputs.exists == 'false'
 
       - name: Build APK and bundle
@@ -63,6 +63,10 @@ jobs:
           cp app/build/outputs/bundle/release/app-release.aab "carburants-$VERSION.aab"
           .github/scripts/release-notes.sh "$VERSION" > notes.md
           test -s notes.md
+
+      - name: Annotations
+        if: failure()
+        run: .github/scripts/sarif-annotations.sh app/build/reports/*.sarif
 
       - name: Publish release
         if: steps.version.outputs.exists == 'false'

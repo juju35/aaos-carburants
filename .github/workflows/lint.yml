@@ -14,8 +14,8 @@ jobs:
     name: pre-commit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
       - uses: pre-commit/action@v3.0.1
@@ -24,22 +24,25 @@ jobs:
     name: Ruff (annotations)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: astral-sh/ruff-action@v3
 
   detekt:
     name: Detekt + ktlint (Kotlin quality, dead code)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - run: ./gradlew --no-daemon detekt
-      # Findings as annotations on the pull request (code scanning), even when the job fails.
-      - uses: github/codeql-action/upload-sarif@v3
+      - name: Annotations
+        if: always()
+        run: .github/scripts/sarif-annotations.sh app/build/reports/detekt/detekt.sarif
+      # Also in code scanning (Security tab), even when the job fails.
+      - uses: github/codeql-action/upload-sarif@v4
         if: always() && hashFiles('app/build/reports/detekt/detekt.sarif') != ''
         with:
           sarif_file: app/build/reports/detekt/detekt.sarif
@@ -49,14 +52,17 @@ jobs:
     name: Android lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v5
       - run: ./gradlew --no-daemon lintDebug
-      - uses: github/codeql-action/upload-sarif@v3
+      - name: Annotations
+        if: always()
+        run: .github/scripts/sarif-annotations.sh app/build/reports/lint-results-debug.sarif
+      - uses: github/codeql-action/upload-sarif@v4
         if: always() && hashFiles('app/build/reports/lint-results-debug.sarif') != ''
         with:
           sarif_file: app/build/reports/lint-results-debug.sarif
@@ -66,8 +72,8 @@ jobs:
     name: Duplication (jscpd)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "20"
       - run: npx --yes jscpd@5.4.2 .
