@@ -199,27 +199,50 @@ def brand_index():
     return index
 
 
-def wikidata_logo_url(qid):
-    """P8972 (small logo or icon), else P154 (logo image): preferred rank, else no end time, else the last."""
+def wikidata_claims(qid):
     url = "https://www.wikidata.org/w/api.php?" + urllib.parse.urlencode(
         {"action": "wbgetentities", "ids": qid, "props": "claims", "format": "json"}
     )
-    claims = json.loads(http_get(url))["entities"][qid].get("claims", {})
-    for prop in ("P8972", "P154"):
-        usable = [
-            c
-            for c in claims.get(prop, [])
-            if c.get("rank") != "deprecated"
-            and isinstance(c.get("mainsnak", {}).get("datavalue", {}).get("value"), str)
-        ]
-        if not usable:
-            continue
-        preferred = [c for c in usable if c.get("rank") == "preferred"]
-        current = [c for c in usable if "P582" not in (c.get("qualifiers") or {})]
-        claim = preferred[0] if preferred else (current or usable)[-1]
-        file = claim["mainsnak"]["datavalue"]["value"].replace(" ", "_")
-        return f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(file)}?width=256"
-    return None
+    return json.loads(http_get(url))["entities"][qid].get("claims", {})
+
+
+def current_value(claims, prop, kind):
+    """Value of the current statement: preferred rank, else no end time (P582), else the last one."""
+    usable = [
+        c
+        for c in claims.get(prop, [])
+        if c.get("rank") != "deprecated" and isinstance(c.get("mainsnak", {}).get("datavalue", {}).get("value"), kind)
+    ]
+    if not usable:
+        return None
+    preferred = [c for c in usable if c.get("rank") == "preferred"]
+    current = [c for c in usable if "P582" not in (c.get("qualifiers") or {})]
+    return (preferred[0] if preferred else (current or usable)[-1])["mainsnak"]["datavalue"]["value"]
+
+
+def logo_file(claims):
+    """P8972 (small logo or icon), else P154 (logo image)."""
+    return next((f for p in ("P8972", "P154") if (f := current_value(claims, p, str))), None)
+
+
+def wikidata_logo(qid):
+    """(Commons file, entity it comes from): the brand's, else its parent organisation's (P749) or whole (P361)."""
+    claims = wikidata_claims(qid)
+    if file := logo_file(claims):
+        return file, qid
+    for prop in ("P749", "P361"):
+        parent = (current_value(claims, prop, dict) or {}).get("id")
+        if parent and (file := logo_file(wikidata_claims(parent))):
+            return file, parent
+    return None, None
+
+
+def record_source(brand, entry):
+    path = BRAND_LOGOS / "sources.json"
+    sources = json.loads(path.read_text()) if path.exists() else {}
+    sources[brand] = entry
+    BRAND_LOGOS.mkdir(exist_ok=True)
+    path.write_text(json.dumps(sources, indent=2, ensure_ascii=False, sort_keys=True) + "\n")
 
 
 def brand_logo(brand):
@@ -232,16 +255,17 @@ def brand_logo(brand):
         qid = next(
             (q for n in range(len(words), 0, -1) if (q := brand_index().get(brand_key(" ".join(words[:n]))))), None
         )
-        url = qid and wikidata_logo_url(qid)
-        if not url:
-            print(f"no logo for {brand}")
+        file, source = wikidata_logo(qid) if qid else (None, None)
+        if not file:
+            record_source(brand, {"wikidata": qid, "logo": None})
             return None
+        url = f"https://commons.wikimedia.org/wiki/Special:FilePath/{urllib.parse.quote(file.replace(' ', '_'))}?width=256"
         image = Image.open(io.BytesIO(http_get(url))).convert("RGBA")
     except Exception as err:  # Offline: initials, as the app does until the logo is there.
         print(f"logo for {brand} not downloaded: {err}")
         return None
-    BRAND_LOGOS.mkdir(exist_ok=True)
     image.save(path, "PNG", optimize=True)
+    record_source(brand, {"wikidata": qid, "logo_from": source, "commons_file": file})
     print(f"downloaded {path.relative_to(ROOT)}")
     return path
 
