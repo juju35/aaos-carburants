@@ -40,9 +40,12 @@ internal class StationNames(context: Context) {
         private const val REFRESH_MS = 7L * 24 * 3600 * 1000
 
         // Left in lower case when an all-caps name is put in title case, except first.
-        private val SMALL_WORDS = setOf("de", "du", "des", "la", "le", "les", "et", "sur", "sous", "en", "aux", "au", "d", "l")
+        private val SMALL_WORDS =
+            setOf("de", "du", "des", "la", "le", "les", "et", "sur", "sous", "en", "aux", "au", "d", "l")
+
         // Kept as written: road numbers, "SARL", "ZA"...
-        private val UPPER_WORDS = Regex("^(?:[A-Z]{1,3}\\d+[A-Z]?|RN|RD|ZA|ZI|ZAC|SA|SAS|SARL|SNC|EURL|BP|E\\.?\\s?LECLERC)$")
+        private val UPPER_WORDS =
+            Regex("^(?:[A-Z]{1,3}\\d+[A-Z]?|RN|RD|ZA|ZI|ZAC|SA|SAS|SARL|SNC|EURL|BP|E\\.?\\s?LECLERC)$")
         private const val SEPARATORS = "-'’"
 
         /** "RELAIS LES TROIS MARCHES" -> "Relais les Trois Marches". Names not in capitals are kept. */

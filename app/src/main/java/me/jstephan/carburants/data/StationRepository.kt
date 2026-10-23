@@ -94,7 +94,8 @@ class StationRepository private constructor(context: Context) {
         private const val MIN_RESULTS = 3
         private const val NAMES_WAIT_MS = 6_000L
 
-        private val GENERIC_NAMES = setOf("station", "station service", "stationservice", "carburant", "carburants", "essence", "fuel")
+        private val GENERIC_NAMES =
+            setOf("station", "station service", "stationservice", "carburant", "carburants", "essence", "fuel")
 
         @Volatile private var instance: StationRepository? = null
 

@@ -16,6 +16,7 @@ import java.text.Normalizer
  */
 internal class BrandIndex(context: Context) {
     private val download = CachedDownload(File(context.filesDir, "nsi_fuel.json"), URL, REFRESH_MS)
+
     @Volatile private var index: Map<String, String>? = null
 
     /**

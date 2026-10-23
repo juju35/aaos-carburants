@@ -26,7 +26,9 @@ internal class BrandCache(context: Context) {
     private val stationsFile = File(context.filesDir, "brands_v2.json")
     private val logosFile = File(context.filesDir, "logos.json")
     private val mutex = Mutex()
+
     @Volatile private var stations: MutableMap<Long, Info>? = null
+
     @Volatile private var logos: MutableMap<String, Logo>? = null
 
     fun peek(id: Long): Info? = stations?.get(id)
@@ -35,7 +37,13 @@ internal class BrandCache(context: Context) {
     fun logo(qid: String?): String? = qid?.let { logos?.get(it)?.url }
 
     suspend fun ensureLoaded() {
-        if (stations == null || logos == null) mutex.withLock { withContext(Dispatchers.IO) { stationMap(); logoMap() } }
+        if (stations != null && logos != null) return
+        mutex.withLock {
+            withContext(Dispatchers.IO) {
+                stationMap()
+                logoMap()
+            }
+        }
     }
 
     /** OpenStreetMap lookup of the stations not checked yet. True when something new was stored. */
@@ -99,17 +107,21 @@ internal class BrandCache(context: Context) {
             val tags = element.optJSONObject("tags") ?: continue
             val refs = tags.optString("ref:FR:prix-carburants").replace(" ", "").split(";")
             if (sid in refs) return tags.toTags()
-            if (tags.optString("brand").isEmpty() && tags.optString("name").isEmpty()) continue
-            val center = element.optJSONObject("center")
-            val lat = if (element.has("lat")) element.optDouble("lat") else center?.optDouble("lat") ?: continue
-            val lon = if (element.has("lon")) element.optDouble("lon") else center?.optDouble("lon") ?: continue
-            val dist = Geo.distanceKm(station.latitude, station.longitude, lat, lon)
-            if (dist < best) {
+            val dist = distanceIfBranded(station, element, tags)
+            if (dist != null && dist < best) {
                 best = dist
                 nearest = tags
             }
         }
         return nearest?.toTags()
+    }
+
+    /** Distance to an OSM station that has a brand or a name (point, or centre of a way), else null. */
+    private fun distanceIfBranded(station: Station, element: JSONObject, tags: JSONObject): Double? {
+        if (tags.optString("brand").isEmpty() && tags.optString("name").isEmpty()) return null
+        val point = if (element.has("lat")) element else element.optJSONObject("center") ?: return null
+        if (!point.has("lat") || !point.has("lon")) return null
+        return Geo.distanceKm(station.latitude, station.longitude, point.optDouble("lat"), point.optDouble("lon"))
     }
 
     private fun JSONObject.toTags(): Tags {
@@ -200,10 +212,13 @@ internal class BrandCache(context: Context) {
         private const val OVERPASS_URL = "https://overpass-api.de/api/interpreter"
         private const val WIKIDATA_URL = "https://www.wikidata.org/w/api.php"
         private const val COMMONS_FILE_URL = "https://commons.wikimedia.org/wiki/Special:FilePath/"
+
         // Small logo or icon (square), then logo image.
         private val LOGO_PROPERTIES = listOf("P8972", "P154")
+
         // The feed's coordinates are rounded to ~100 m and sometimes sit on the street.
         private const val NEARBY_METERS = 300
+
         // Missing brand or logo: looked up again after a week.
         private const val RETRY_MS = 7L * 24 * 3600 * 1000
     }

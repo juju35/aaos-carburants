@@ -309,6 +309,7 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
         const val DEFAULT_LIMIT = 6
         const val LOGO_PX = 128
         const val FIX_TIMEOUT_MS = 20_000L
+
         // New search after 2 km or 10 minutes (the feed is refreshed every 10 minutes).
         const val REFETCH_METERS = 2_000f
         const val REFETCH_MS = 10 * 60 * 1000L
