@@ -28,6 +28,9 @@ enum class Fuel(
     E85("e85", "E85", "E85", "", 0xFF0057A8.toInt(), WHITE, R.string.fuel_e85),
     GPLC("gplc", "GPLc", "GPLc", "", 0xFFC62828.toInt(), WHITE, R.string.fuel_gplc);
 
+    /** Name in a tight line: "E10" rather than "SP95-E10". */
+    val short: String get() = if (this == E10) "E10" else label
+
     companion object {
         fun fromKey(key: String?): Fuel = entries.firstOrNull { it.key == key } ?: GAZOLE
     }
@@ -70,6 +73,12 @@ data class Station(
 
     /** Price when in stock. */
     fun price(fuel: Fuel): Double? = fuels[fuel]?.takeIf { it.available }?.price
+
+    fun sellsAny(fuels: Collection<Fuel>): Boolean = fuels.any(::sells)
+
+    /** Cheapest in-stock price among [fuels], with its fuel. */
+    fun best(fuels: Collection<Fuel>): Pair<Fuel, Double>? =
+        fuels.mapNotNull { f -> price(f)?.let { f to it } }.minByOrNull { it.second }
 
     val prettyCity: String get() = formatCity(city)
 }

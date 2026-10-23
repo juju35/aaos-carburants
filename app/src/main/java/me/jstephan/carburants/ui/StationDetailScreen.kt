@@ -25,13 +25,17 @@ import me.jstephan.carburants.data.formatCity
 import me.jstephan.carburants.ui.Format.appendColored
 import me.jstephan.carburants.ui.Format.appendDistance
 
-/** One station: price of the chosen fuel, other fuels, address, hours, and "Y aller". */
+/** One station: price of your best fuel, your other fuels, the rest, address, hours, and "Y aller". */
 class StationDetailScreen(
     carContext: CarContext,
     private val station: Station,
-    private val fuel: Fuel,
+    /** The fuels chosen in the picker, never empty. */
+    private val fuels: List<Fuel>,
 ) : Screen(carContext) {
     private val repo = StationRepository.get(carContext)
+
+    /** Headline fuel: the cheapest in stock among yours, else the first one sold here. */
+    private val main: Fuel = station.best(fuels)?.first ?: fuels.firstOrNull { station.sells(it) } ?: fuels.first()
 
     override fun onGetTemplate(): Template {
         val pane = Pane.Builder()
@@ -49,15 +53,18 @@ class StationDetailScreen(
             .build()
     }
 
+    /** "E10 · 1,749 €/L", then your other fuels sold here, then the price's age. */
     private fun priceRow(): Row {
-        val fp = station.fuels[fuel]
-        val row = Row.Builder().setImage(bitmapIcon(Badges.fuelBadge(fuel, BADGE_PX)), Row.IMAGE_TYPE_SMALL)
-        val price = station.price(fuel)
+        val fp = station.fuels[main]
+        val row = Row.Builder().setImage(bitmapIcon(Badges.fuelBadge(main, BADGE_PX)), Row.IMAGE_TYPE_SMALL)
+        val price = station.price(main)
+        val yours = fuels.filter { it != main }.mapNotNull(::pricePart)
+        if (yours.isNotEmpty()) row.addText(join(yours))
         if (price != null) {
-            row.setTitle(carContext.getString(R.string.price_per_litre, fuel.label, Format.price(price)))
+            row.setTitle(carContext.getString(R.string.price_per_litre, main.label, Format.price(price)))
             fp?.updated?.let { row.addText(carContext.getString(R.string.updated, Format.relative(it))) }
         } else if (fp?.rupture != null) {
-            row.setTitle("${fuel.label} · ${carContext.getString(R.string.rupture)}")
+            row.setTitle("${main.label} · ${carContext.getString(R.string.rupture)}")
             val since = fp.ruptureSince
             val text = if (since != null) {
                 carContext.getString(R.string.rupture_since, Format.relative(since))
@@ -66,36 +73,41 @@ class StationDetailScreen(
             }
             row.addText(SpannableStringBuilder().appendColored(text, CarColor.RED))
         } else {
-            row.setTitle("${fuel.label} · ${carContext.getString(R.string.no_price)}")
+            row.setTitle("${main.label} · ${carContext.getString(R.string.no_price)}")
         }
         return row.build()
     }
 
-    /** "SP98 1,899 € · E10 1,799 €", three per line, at most two lines. */
+    /** The fuels you didn't choose: "SP98 1,899 € · E85 0,829 €", three per line, at most two lines. */
     private fun otherFuelsRow(): Row? {
-        val others = Fuel.entries.filter { it != fuel }.mapNotNull { f ->
-            val fp = station.fuels[f] ?: return@mapNotNull null
-            if (fp.rupture == RUPTURE_DEFINITIVE) return@mapNotNull null
-            val price = station.price(f)
-            val text = SpannableStringBuilder(f.label).append(' ')
-            when {
-                price != null -> text.append(Format.price(price))
-                fp.rupture != null -> text.appendColored(carContext.getString(R.string.rupture).lowercase(), CarColor.RED)
-                else -> text.append("–")
-            }
-            text
-        }
+        val others = Fuel.entries.filter { it !in fuels }.mapNotNull(::pricePart)
         if (others.isEmpty()) return null
         val row = Row.Builder().setTitle(carContext.getString(R.string.other_fuels))
-        others.chunked(3).take(2).forEach { chunk ->
-            val line = SpannableStringBuilder()
-            chunk.forEachIndexed { i, part ->
-                if (i > 0) line.append("  ·  ")
-                line.append(part)
-            }
-            row.addText(line)
-        }
+        others.chunked(3).take(2).forEach { row.addText(join(it)) }
         return row.build()
+    }
+
+    /** "SP98 1,899 €", "E85 rupture" (red), null when not sold here. */
+    private fun pricePart(fuel: Fuel): CharSequence? {
+        val fp = station.fuels[fuel] ?: return null
+        if (fp.rupture == RUPTURE_DEFINITIVE) return null
+        val price = station.price(fuel)
+        val text = SpannableStringBuilder(fuel.label).append(' ')
+        when {
+            price != null -> text.append(Format.price(price))
+            fp.rupture != null -> text.appendColored(carContext.getString(R.string.rupture).lowercase(), CarColor.RED)
+            else -> text.append("–")
+        }
+        return text
+    }
+
+    private fun join(parts: List<CharSequence>): CharSequence {
+        val line = SpannableStringBuilder()
+        parts.forEachIndexed { i, part ->
+            if (i > 0) line.append("  ·  ")
+            line.append(part)
+        }
+        return line
     }
 
     private fun addressRow(): Row {

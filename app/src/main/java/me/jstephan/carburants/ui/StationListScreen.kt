@@ -41,11 +41,11 @@ import me.jstephan.carburants.location.hasLocationPermission
 import me.jstephan.carburants.ui.Format.appendColored
 import me.jstephan.carburants.ui.Format.appendDistance
 
-/** Home screen: the nearest stations on the map, cheapest first, with the chosen fuel's price. */
+/** Home screen: the nearest stations on the map, cheapest first, with the prices of the chosen fuels. */
 class StationListScreen(carContext: CarContext) : Screen(carContext) {
     private val repo = StationRepository.get(carContext)
     private val prefs = Prefs(carContext)
-    private var fuel = prefs.fuel
+    private var fuels = prefs.fuels
     private var sort = prefs.sort
 
     private var stations: List<Station>? = null
@@ -110,7 +110,7 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
             fetchedAt = loc
             fetchedTime = SystemClock.elapsedRealtime()
             try {
-                val result = repo.nearby(loc.latitude, loc.longitude, fuel)
+                val result = repo.nearby(loc.latitude, loc.longitude, fuels)
                 stations = result.stations
                 radiusKm = result.radiusKm
                 error = null
@@ -165,8 +165,8 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
     private fun visible(list: List<Station>): List<Station> {
         val byDistance = compareBy<Station> { it.distanceKm ?: Double.MAX_VALUE }
         val sorted = when (sort) {
-            // In stock first, cheapest first; shortages at the end, nearest first.
-            SortOrder.PRICE -> list.sortedWith(compareBy<Station> { it.price(fuel) ?: Double.MAX_VALUE }.then(byDistance))
+            // Cheapest of the chosen fuels first; shortages at the end, nearest first.
+            SortOrder.PRICE -> list.sortedWith(compareBy<Station> { it.best(fuels)?.second ?: Double.MAX_VALUE }.then(byDistance))
             SortOrder.DISTANCE -> list.sortedWith(byDistance)
         }
         return sorted.take(contentLimit())
@@ -184,27 +184,34 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
 
     private fun itemList(list: List<Station>): ItemList {
         val shown = visible(list)
-        val cheapest = shown.mapNotNull { it.price(fuel) }.minOrNull()
+        val cheapest = shown.mapNotNull { it.best(fuels)?.second }.minOrNull()
         val items = ItemList.Builder()
-            .setNoItemsMessage(carContext.getString(R.string.no_station, fuel.label, radiusKm))
+            .setNoItemsMessage(carContext.getString(R.string.no_station, fuelsLabel(), radiusKm))
         shown.forEach { items.addItem(row(it, cheapest)) }
         return items.build()
     }
 
     private fun row(station: Station, cheapest: Double?): Row {
         val image = CarIcon.Builder(IconCompat.createWithBitmap(repo.logos.stationBitmap(station, LOGO_PX))).build()
-        val fuelPrice = station.fuels[fuel]
-        val price = station.price(fuel)
-        val isCheapest = price != null && price == cheapest
+        val best = station.best(fuels)
+        val isCheapest = best != null && best.second == cheapest
 
-        // Line 1: distance · price (green for the cheapest).
+        // Line 1: distance · price of each chosen fuel sold here (the cheapest of the list in green).
         val line1 = SpannableStringBuilder()
         station.distanceKm?.let { line1.appendDistance(it).append(" · ") }
-        when {
-            price != null && isCheapest -> line1.appendColored(Format.price(price), CarColor.GREEN)
-            price != null -> line1.append(Format.price(price))
-            fuelPrice?.rupture != null -> line1.appendColored(carContext.getString(R.string.rupture), CarColor.RED)
-            else -> line1.append(carContext.getString(R.string.no_price))
+        val sold = fuels.filter { station.sells(it) }
+        if (sold.isEmpty()) line1.append(carContext.getString(R.string.no_price))
+        sold.forEachIndexed { index, f ->
+            if (index > 0) line1.append(" · ")
+            if (fuels.size > 1) line1.append(f.short).append(' ')
+            val price = station.price(f)
+            when {
+                price != null && isCheapest && f == best?.first -> line1.appendColored(Format.price(price), CarColor.GREEN)
+                price != null -> line1.append(Format.price(price))
+                station.fuels[f]?.rupture != null ->
+                    line1.appendColored(carContext.getString(R.string.rupture).lowercase(), CarColor.RED)
+                else -> line1.append("–")
+            }
         }
 
         // Line 2: town · opening status.
@@ -226,13 +233,13 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
             .addText(line2)
             .setImage(image, Row.IMAGE_TYPE_LARGE)
             .setMetadata(Metadata.Builder().setPlace(place).build())
-            .setOnClickListener { screenManager.push(StationDetailScreen(carContext, station, fuel)) }
+            .setOnClickListener { screenManager.push(StationDetailScreen(carContext, station, fuels)) }
             .build()
     }
 
     private fun actionStrip(): ActionStrip {
         val fuelAction = Action.Builder()
-            .setTitle(fuel.label)
+            .setTitle(fuelsLabel())
             .setIcon(Format.icon(carContext, R.drawable.ic_fuel))
             .setOnClickListener(::pickFuel)
             .build()
@@ -244,12 +251,20 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
         return ActionStrip.Builder().addAction(fuelAction).addAction(sortAction).build()
     }
 
+    /** "Gazole", "E10, SP98", "3 carburants". */
+    private fun fuelsLabel(): String = when (fuels.size) {
+        1 -> fuels[0].label
+        2 -> fuels.joinToString(", ") { it.short }
+        else -> carContext.getString(R.string.n_fuels, fuels.size)
+    }
+
     private fun pickFuel() {
-        screenManager.pushForResult(FuelPickerScreen(carContext, fuel)) { result ->
-            val picked = result as? Fuel ?: return@pushForResult
-            if (picked == fuel) return@pushForResult
-            fuel = picked
-            prefs.fuel = picked
+        screenManager.pushForResult(FuelPickerScreen(carContext, fuels)) { result ->
+            @Suppress("UNCHECKED_CAST")
+            val picked = result as? List<Fuel> ?: return@pushForResult
+            if (picked == fuels) return@pushForResult
+            fuels = picked
+            prefs.fuels = picked
             stations = null
             fetchedAt = null
             refresh()

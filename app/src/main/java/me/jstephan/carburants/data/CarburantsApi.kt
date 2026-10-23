@@ -19,11 +19,11 @@ internal object CarburantsApi {
             "prix-des-carburants-en-france-flux-instantane-v2/records"
     private const val MAX_RESULTS = 50
 
-    /** Up to 50 stations around the point, nearest first, that sell [fuel] (or had a shortage of it). */
-    fun nearby(latitude: Double, longitude: Double, radiusKm: Int, fuel: Fuel): List<Station> {
+    /** Up to 50 stations around the point, nearest first, that sell one of [fuels] (or had a shortage of it). */
+    fun nearby(latitude: Double, longitude: Double, radiusKm: Int, fuels: List<Fuel>): List<Station> {
         val point = "geom'POINT($longitude $latitude)'"
         val area = "within_distance(geom, $point, ${radiusKm}km)"
-        val sold = "(${fuel.key}_prix is not null OR ${fuel.key}_rupture_type is not null)"
+        val sold = fuels.joinToString(" OR ", "(", ")") { "${it.key}_prix is not null OR ${it.key}_rupture_type is not null" }
         val order = "distance(geom, $point)"
         val records = try {
             records("$area AND $sold", order)

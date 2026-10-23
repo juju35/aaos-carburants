@@ -38,30 +38,30 @@ STATIONS = [
     {
         "name": "Leclerc Rennes Colombier", "brand": "E.Leclerc", "lat": 48.1120, "lon": -1.6575,
         "address": "Boulevard de la Liberté", "status": ("Ouvert · ferme à 21:00", "open"),
-        "prices": {"gazole": 1.689, "sp95": 1.789, "sp98": 1.849, "e10": 1.749, "e85": 0.829, "gplc": None},
+        "prices": {"gazole": 1.689, "sp95": 1.789, "sp98": 1.849, "e10": 1.729, "e85": 0.829, "gplc": None},
         "extras": "Automate 24h/24 · Boutique alimentaire · Lavage",
     },
     {
         "name": "Super U Rennes Sud", "brand": "Super U", "lat": 48.0985, "lon": -1.6733,
-        "status": ("Ouvert · ferme à 20:00", "open"), "prices": {"gazole": 1.709},
+        "status": ("Ouvert · ferme à 20:00", "open"), "prices": {"gazole": 1.709, "e10": 1.749, "sp98": 1.859},
     },
     {
         "name": "Total Access Rennes Saint-Malo", "brand": "Total Access", "lat": 48.1235, "lon": -1.6905,
-        "logo": "logo_total_access.png", "status": ("Ouvert 24h/24", "open"), "prices": {"gazole": 1.719},
+        "logo": "logo_total_access.png", "status": ("Ouvert 24h/24", "open"), "prices": {"gazole": 1.719, "e10": 1.759, "sp98": None},
     },
     {
         "name": "Carrefour Market Thabor", "brand": "Carrefour Market", "lat": 48.1188, "lon": -1.6921,
-        "status": ("Ouvert · ferme à 20:30", "open"), "prices": {"gazole": 1.749},
+        "status": ("Ouvert · ferme à 20:30", "open"), "prices": {"gazole": 1.749, "e10": 1.769},
     },
     {
         "name": "TotalEnergies Rennes Alma", "brand": "TotalEnergies", "lat": 48.1012, "lon": -1.6838,
         "logo": "logo_totalenergies.png", "address": "Rue de l'Alma", "status": ("Ouvert 24h/24", "open"),
-        "prices": {"gazole": 1.769, "sp95": 1.839, "sp98": 1.899, "e10": 1.799, "e85": None, "gplc": 1.049},
+        "prices": {"gazole": 1.769, "sp95": 1.839, "sp98": 1.879, "e10": 1.789, "e85": None, "gplc": 1.049},
         "extras": "Boutique alimentaire · Lavage · Gonflage",
     },
     {
         "name": "Esso Rennes Nord", "brand": "Esso", "lat": 48.1255, "lon": -1.6760,
-        "status": ("Automate 24h/24", "automate"), "prices": {"gazole": 1.789},
+        "status": ("Automate 24h/24", "automate"), "prices": {"gazole": 1.789, "e10": 1.809, "sp98": 1.899},
     },
 ]
 
@@ -74,6 +74,10 @@ FUELS = [
     ("e85", "E85", "", "#0057A8", "#FFFFFF", "Superéthanol"),
     ("gplc", "GPLc", "", "#C62828", "#FFFFFF", "Gaz de pétrole liquéfié"),
 ]
+
+# Chosen in the picker (a petrol car): the list shows both, sorted on the cheaper one.
+CHOSEN = ["e10", "sp98"]
+SHORT = {"e10": "E10", "sp98": "SP98", "sp95": "SP95", "gazole": "Gazole", "e85": "E85", "gplc": "GPLc"}
 
 PALETTE = ["#1565c0", "#2e7d32", "#c62828", "#6a1b9a", "#ef6c00", "#00838f", "#4e342e", "#283593"]
 
@@ -233,16 +237,34 @@ def page(body, extra_css=""):
 def sorted_stations():
     for st in STATIONS:
         st["distance"] = distance_km(*HERE, st["lat"], st["lon"])
-    return sorted(STATIONS, key=lambda s: (s["prices"]["gazole"], s["distance"]))
+    return sorted(STATIONS, key=lambda s: (best(s)[1], s["distance"]))
+
+
+def best(st):
+    """Cheapest in-stock price among the chosen fuels (Station.best)."""
+    found = [(k, st["prices"][k]) for k in CHOSEN if st["prices"].get(k)]
+    return min(found, key=lambda kv: kv[1]) if found else (None, 99.0)
 
 
 def list_page():
     stations = sorted_stations()
-    cheapest = stations[0]["prices"]["gazole"]
+    cheapest = best(stations[0])[1]
     rows = []
     for st in stations:
-        price = st["prices"]["gazole"]
-        price_html = f'<span class="green">{fmt_price(price)}</span>' if price == cheapest else fmt_price(price)
+        best_key, best_price = best(st)
+        parts = []
+        for key in CHOSEN:
+            if key not in st["prices"]:
+                continue  # Not sold here.
+            price = st["prices"][key]
+            if price is None:
+                value = '<span class="red">rupture</span>'
+            elif key == best_key and best_price == cheapest:
+                value = f'<span class="green">{fmt_price(price)}</span>'
+            else:
+                value = fmt_price(price)
+            parts.append(f"{SHORT[key]} {value}")
+        price_html = " · ".join(parts)
         status, state = st["status"]
         cls = {"open": "green", "automate": "yellow", "closed": "red"}[state]
         rows.append(
@@ -254,7 +276,7 @@ def list_page():
     markers = []
     for st in stations:
         x, y = screen_px(st["lat"], st["lon"])
-        ring = "#34c47c" if st["prices"]["gazole"] == cheapest else "#ffffff"
+        ring = "#34c47c" if best(st)[1] == cheapest else "#ffffff"
         markers.append(
             f'<div class="marker" style="left:{x - 26}px;top:{y - 26}px;border-color:{ring}">{logo(st, 44)}</div>'
         )
@@ -268,7 +290,7 @@ def list_page():
       {''.join(rows)}
     </div>
     <div class="strip">
-      <div class="chip">{svg(GAS, 26)}Gazole</div>
+      <div class="chip">{svg(GAS, 26)}E10, SP98</div>
       <div class="chip">{svg(SORT, 26)}Prix</div>
     </div>
     <div class="attrib">© OpenStreetMap</div>
@@ -299,14 +321,18 @@ def detail_page():
     st = STATIONS[4]
     st["distance"] = distance_km(*HERE, st["lat"], st["lon"])
     others = []
-    for key, label, *_ in FUELS[1:]:
+    for key, label, *_ in [f for f in FUELS if f[0] not in CHOSEN]:
         price = st["prices"].get(key)
         if price is None and key not in st["prices"]:
             continue  # Not sold here.
         others.append(f"{label} {fmt_price(price)}" if price else f'{label} <span class="red">rupture</span>')
     lines = ["  ·  ".join(others[i : i + 3]) for i in range(0, len(others), 3)]
     rows = [
-        (fuel_badge(FUELS[0], 64), f"Gazole · {fmt_price(st['prices']['gazole'])}/L", ["Mis à jour il y a 2 heures"]),
+        (
+            fuel_badge(next(f for f in FUELS if f[0] == "e10"), 64),
+            f"SP95-E10 · {fmt_price(st['prices']['e10'])}/L",
+            [f"SP98 {fmt_price(st['prices']['sp98'])}", "Mis à jour il y a 2 heures"],
+        ),
         ('<div style="width:64px"></div>', "Autres carburants", lines),
         (f'<div class="ic">{svg(PLACE, 34)}</div>', st["address"], [f"35000 Rennes · {fmt_distance(st['distance'])}"]),
         (f'<div class="ic">{svg(CLOCK, 34)}</div>', st["status"][0], [st["extras"]]),
@@ -346,14 +372,13 @@ def fuel_page():
     rows = []
     for i, fuel in enumerate(FUELS):
         key, label, code, *_ , desc = fuel
-        checked = i == 0
-        radio = '<div class="radio on"><div></div></div>' if checked else '<div class="radio"></div>'
+        radio = '<div class="switch on"><div></div></div>' if key in CHOSEN else '<div class="switch"><div></div></div>'
         rows.append(
             f'<div class="frow">{fuel_badge(fuel, 64)}<div class="ft"><div class="t">{label}</div>'
             f'<div class="l secondary">{desc}{" · " + code if code else ""}</div></div>{radio}</div>'
         )
     body = f"""
-    <div class="header" style="height:96px"><div class="round">{svg(BACK, 32)}</div>Carburant</div>
+    <div class="header" style="height:96px"><div class="round">{svg(BACK, 32)}</div>Carburants de votre véhicule</div>
     <div class="list">{''.join(rows)}</div>
     """
     css = """
@@ -363,10 +388,10 @@ def fuel_page():
     .ft { flex: 1; }
     .t { font-size: 26px; font-weight: 600; }
     .l { font-size: 21px; margin-top: 4px; }
-    .radio { width: 36px; height: 36px; border-radius: 18px; border: 3px solid #a8adb4; display: flex;
-             align-items: center; justify-content: center; }
-    .radio.on { border-color: #8ab4f8; }
-    .radio.on div { width: 18px; height: 18px; border-radius: 9px; background: #8ab4f8; }
+    .switch { width: 64px; height: 36px; border-radius: 18px; background: #5f6368; position: relative; flex: none; }
+    .switch div { position: absolute; top: 4px; left: 4px; width: 28px; height: 28px; border-radius: 14px; background: #c4c7c5; }
+    .switch.on { background: #8ab4f8; }
+    .switch.on div { left: 32px; background: #0b0c0e; }
     """
     return page(body, css)
 

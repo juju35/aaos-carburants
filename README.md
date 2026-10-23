@@ -4,16 +4,17 @@ Nearby fuel stations for **Android Automotive OS 12+** (API 31), built with the
 [Car App Library](https://developer.android.com/training/cars/apps) templates (POI category),
 so it follows the platform's driving guidelines out of the box.
 
-- Map + list of the nearest stations selling your fuel, cheapest highlighted in green
+- Map + list of the nearest stations selling the fuels your car takes, with the price of each; the cheapest highlighted in green
 - Logo, name, price, distance, opening status per station
-- Detail: price and freshness, other fuels, address, hours, services, **Go** button that hands
+- Detail: your cheapest fuel there and its freshness, your other fuels, the rest, address, hours, services, **Go** button that hands
   the destination to the car's navigation app (`CarContext.ACTION_NAVIGATE`)
-- Fuel picker (Gazole, SP95, SP98, E10, E85, GPLc) and price / distance sort, both remembered
+- Fuel picker: switch on the fuels your car takes (Gazole, SP95, SP98, E10, E85, GPLc, at least one); the price sort uses
+  the cheapest of them at each station. Fuels and sort are remembered
 - Automatic refresh after 2 km or 10 minutes; 10 km radius, widened to 30 km when there are fewer than 3 stations
 
 ## Screenshots
 
-| Nearby stations | Station | Fuel |
+| Nearby stations | Station | Fuels |
 | --- | --- | --- |
 | ![Nearby stations](screenshots/list.png) | ![Station detail](screenshots/detail.png) | ![Fuel picker](screenshots/fuel.png) |
 

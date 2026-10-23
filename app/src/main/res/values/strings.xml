@@ -19,7 +19,9 @@
     <string name="navigate">Y aller</string>
     <string name="navigation_unavailable">Aucune application de navigation disponible</string>
 
-    <string name="choose_fuel">Carburant</string>
+    <string name="choose_fuel">Carburants de votre véhicule</string>
+    <string name="n_fuels">%1$d carburants</string>
+    <string name="keep_one_fuel">Gardez au moins un carburant</string>
     <string name="price_per_litre">%1$s · %2$s/L</string>
     <string name="updated">Mis à jour %1$s</string>
     <string name="rupture">Rupture</string>

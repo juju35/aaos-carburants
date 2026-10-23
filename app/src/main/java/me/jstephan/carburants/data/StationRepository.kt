@@ -19,17 +19,17 @@ class StationRepository private constructor(context: Context) {
     // Started right away: the first download (~1 MB) must not hold up the first list.
     private var names: Deferred<Map<String, StationNames.Entry>> = scope.async { stationNames.load() }
 
-    /** Nearest stations selling [fuel], within [RADIUS_KM], widened to [WIDE_RADIUS_KM] when there are few. */
-    suspend fun nearby(latitude: Double, longitude: Double, fuel: Fuel): Result {
+    /** Nearest stations selling one of [fuels], within [RADIUS_KM], widened to [WIDE_RADIUS_KM] when there are few. */
+    suspend fun nearby(latitude: Double, longitude: Double, fuels: List<Fuel>): Result {
         var radius = RADIUS_KM
-        var list = withContext(Dispatchers.IO) { CarburantsApi.nearby(latitude, longitude, radius, fuel) }
-        if (list.count { it.sells(fuel) } < MIN_RESULTS) {
+        var list = withContext(Dispatchers.IO) { CarburantsApi.nearby(latitude, longitude, radius, fuels) }
+        if (list.count { it.sellsAny(fuels) } < MIN_RESULTS) {
             radius = WIDE_RADIUS_KM
-            list = withContext(Dispatchers.IO) { CarburantsApi.nearby(latitude, longitude, radius, fuel) }
+            list = withContext(Dispatchers.IO) { CarburantsApi.nearby(latitude, longitude, radius, fuels) }
         }
         val names = currentNames()
         brands.ensureLoaded()
-        return Result(list.filter { it.sells(fuel) }.map { decorate(it, names) }, radius)
+        return Result(list.filter { it.sellsAny(fuels) }.map { decorate(it, names) }, radius)
     }
 
     data class Result(val stations: List<Station>, val radiusKm: Int)
