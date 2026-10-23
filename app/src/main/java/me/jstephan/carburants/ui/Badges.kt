@@ -11,10 +11,16 @@ import me.jstephan.carburants.data.Fuel
 
 /** Bitmaps drawn by the app: logo tiles, initials badges (as the card does) and fuel badges. */
 object Badges {
-    private val PALETTE = intArrayOf(
-        0xFF1565C0.toInt(), 0xFF2E7D32.toInt(), 0xFFC62828.toInt(), 0xFF6A1B9A.toInt(),
-        0xFFEF6C00.toInt(), 0xFF00838F.toInt(), 0xFF4E342E.toInt(), 0xFF283593.toInt(),
-    )
+    private val PALETTE = longArrayOf(
+        0xFF1565C0,
+        0xFF2E7D32,
+        0xFFC62828,
+        0xFF6A1B9A,
+        0xFFEF6C00,
+        0xFF00838F,
+        0xFF4E342E,
+        0xFF283593,
+    ).map(Long::toInt)
 
     /** Stable colour per brand. */
     fun brandColor(name: String): Int {
@@ -35,10 +41,8 @@ object Badges {
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val radius = size * 0.22f
-        canvas.drawRoundRect(
-            RectF(0f, 0f, size.toFloat(), size.toFloat()), radius, radius,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color },
-        )
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
+        canvas.drawRoundRect(RectF(0f, 0f, size.toFloat(), size.toFloat()), radius, radius, paint)
         return bitmap to canvas
     }
 
@@ -81,7 +85,10 @@ object Badges {
     }
 
     private fun fitText(text: String, preferred: Float, maxWidth: Float): Float {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = Typeface.DEFAULT_BOLD; textSize = preferred }
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            typeface = Typeface.DEFAULT_BOLD
+            textSize = preferred
+        }
         val width = paint.measureText(text)
         return if (width <= maxWidth) preferred else preferred * maxWidth / width
     }

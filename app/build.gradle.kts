@@ -12,13 +12,13 @@ val appVersion = "1.0.0"
 
 android {
     namespace = "me.jstephan.carburants"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "me.jstephan.carburants"
         // Android Automotive 12 (API 31) and later.
         minSdk = 31
-        targetSdk = 35
+        targetSdk = 36
         versionName = appVersion
         versionCode = appVersion.split(".").map(String::toInt).let { (major, minor, patch) ->
             major * 10_000 + minor * 100 + patch

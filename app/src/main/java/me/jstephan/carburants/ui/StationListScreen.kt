@@ -255,7 +255,7 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
     private fun fuelsLabel(): String = when (fuels.size) {
         1 -> fuels[0].label
         2 -> fuels.joinToString(", ") { it.short }
-        else -> carContext.getString(R.string.n_fuels, fuels.size)
+        else -> carContext.resources.getQuantityString(R.plurals.n_fuels, fuels.size, fuels.size)
     }
 
     private fun pickFuel() {

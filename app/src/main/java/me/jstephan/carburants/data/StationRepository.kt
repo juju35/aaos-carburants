@@ -114,11 +114,10 @@ class StationRepository private constructor(context: Context) {
             if (!brand.isNullOrBlank()) {
                 val compact = k.replace(" ", "")
                 val brandCompact = key(brand.replace("-", " ")).replace(" ", "")
-                if (compact.isNotEmpty() && brandCompact.isNotEmpty() &&
-                    (compact in brandCompact || (brandCompact in compact && compact.length - brandCompact.length <= 8))
-                ) {
-                    return null
-                }
+                // Shorter than the brand, or the brand plus a few letters ("Energies", an initial).
+                val shortForm = compact in brandCompact
+                val longForm = brandCompact in compact && compact.length - brandCompact.length <= 8
+                if (compact.isNotEmpty() && brandCompact.isNotEmpty() && (shortForm || longForm)) return null
             }
             return name.trim()
         }

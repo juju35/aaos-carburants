@@ -11,6 +11,7 @@ import androidx.car.app.model.DistanceSpan
 import androidx.car.app.model.ForegroundCarColorSpan
 import androidx.core.graphics.drawable.IconCompat
 import me.jstephan.carburants.R
+import me.jstephan.carburants.data.DayHours
 import me.jstephan.carburants.data.Station
 import java.time.DayOfWeek
 import java.time.Instant
@@ -64,36 +65,35 @@ internal object Format {
         val hours = station.hours
         val day = now.dayOfWeek.value
         val current = now.hour * 60 + now.minute
-        val always = hours.size == 7 && hours.all { d ->
-            !d.closed && d.ranges.any { it.first == "00:00" && minutes(it.second) >= 23 * 60 + 59 }
-        }
-        if (always) return Opening(OpenState.ALWAYS, context.getString(R.string.always_open))
+        if (alwaysOpen(hours)) return Opening(OpenState.ALWAYS, context.getString(R.string.always_open))
 
-        val today = hours.firstOrNull { it.day == day }
-        if (today != null && !today.closed) {
-            today.ranges.firstOrNull { current >= minutes(it.first) && current < minutes(it.second) }?.let {
-                return Opening(OpenState.OPEN, context.getString(R.string.open_until, it.second))
-            }
+        val today = hours.firstOrNull { it.day == day }?.takeIf { !it.closed }
+        today?.ranges?.firstOrNull { current >= minutes(it.first) && current < minutes(it.second) }?.let {
+            return Opening(OpenState.OPEN, context.getString(R.string.open_until, it.second))
         }
         if (station.automate24) return Opening(OpenState.AUTOMATE, context.getString(R.string.automate))
         if (hours.isEmpty()) return null
+        return Opening(OpenState.CLOSED, nextOpening(context, hours, today, day, current))
+    }
 
-        if (today != null && !today.closed) {
-            today.ranges.firstOrNull { minutes(it.first) > current }?.let {
-                return Opening(OpenState.CLOSED, context.getString(R.string.closed_opens_at, it.first))
-            }
+    /** Open every day from 00:00 to 23:59 or later. */
+    private fun alwaysOpen(hours: List<DayHours>): Boolean =
+        hours.size == 7 &&
+            hours.all { d -> !d.closed && d.ranges.any { it.first == "00:00" && minutes(it.second) >= 23 * 60 + 59 } }
+
+    /** "Fermé · ouvre à 14:00" later today, else on the next open day. */
+    private fun nextOpening(context: Context, hours: List<DayHours>, today: DayHours?, day: Int, current: Int): String {
+        today?.ranges?.firstOrNull { minutes(it.first) > current }?.let {
+            return context.getString(R.string.closed_opens_at, it.first)
         }
         for (k in 1..7) {
             val next = hours.firstOrNull { it.day == ((day - 1 + k) % 7) + 1 } ?: continue
             if (next.closed || next.ranges.isEmpty()) continue
             val time = next.ranges.first().first
-            val text = if (k == 1) {
-                context.getString(R.string.closed_opens_tomorrow, time)
-            } else {
-                context.getString(R.string.closed_opens_day, DayOfWeek.of(next.day).getDisplayName(TextStyle.SHORT, FR), time)
-            }
-            return Opening(OpenState.CLOSED, text)
+            if (k == 1) return context.getString(R.string.closed_opens_tomorrow, time)
+            val dayName = DayOfWeek.of(next.day).getDisplayName(TextStyle.SHORT, FR)
+            return context.getString(R.string.closed_opens_day, dayName, time)
         }
-        return Opening(OpenState.CLOSED, context.getString(R.string.closed))
+        return context.getString(R.string.closed)
     }
 }

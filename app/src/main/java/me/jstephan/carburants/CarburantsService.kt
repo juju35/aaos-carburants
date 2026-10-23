@@ -1,5 +1,6 @@
 package me.jstephan.carburants
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import androidx.car.app.CarAppService
@@ -11,6 +12,8 @@ import me.jstephan.carburants.ui.PermissionScreen
 import me.jstephan.carburants.ui.StationListScreen
 
 class CarburantsService : CarAppService() {
+    // The library's own list of trusted hosts, as in Google's samples.
+    @SuppressLint("PrivateResource")
     override fun createHostValidator(): HostValidator =
         if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             HostValidator.ALLOW_ALL_HOSTS_VALIDATOR
