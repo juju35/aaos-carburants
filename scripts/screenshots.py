@@ -306,25 +306,33 @@ def list_page():
     stations = sorted_stations()
     rows = []
     for st in stations:
-        # As StationListScreen.row: first price as the title (no colour there), other prices, distance · name.
+        # As StationListScreen.row: the station, then one fuel per line, the distance at the end.
+        lowest = {k: min(x["prices"][k] for x in stations if x["prices"].get(k)) for k in CHOSEN}
         parts = []
         for key in CHOSEN:
             if key not in st["prices"]:
                 continue  # Not sold here.
             price = st["prices"][key]
-            parts.append(f"{SHORT[key]} {fmt_price(price) if price else 'rupture'}")
+            if price is None:
+                value = '<span class="red">rupture</span>'
+            elif price == lowest[key]:
+                value = f'<span class="green">{fmt_price(price)}</span>'
+            else:
+                value = fmt_price(price)
+            parts.append(f"{SHORT[key]} {value}")
         status, state = st["status"]
         cls = {"open": "green", "automate": "yellow", "closed": "red"}[state]
-        if len(parts) > 1:
-            middle = " · ".join(parts[1:])
-            last = f"{fmt_distance(st['distance'])} · {html.escape(st['name'])}"
+        distance = fmt_distance(st["distance"])
+        if len(parts) == 1:
+            last = f'{distance} · <span class="{cls}">{status}</span>'
+        elif len(parts) == 2:
+            last = f"{parts[1]} · {distance}"
         else:
-            middle = html.escape(st["name"])
-            last = f'{fmt_distance(st["distance"])} · <span class="{cls}">{status}</span>'
+            last = " · ".join([distance, *parts[1:]])
         rows.append(
             f"""<div class="row">{logo(st, 72)}<div class="txt">
-            <div class="t">{parts[0]}</div>
-            <div class="l">{middle}</div>
+            <div class="t">{html.escape(st["name"])}</div>
+            <div class="l">{parts[0]}</div>
             <div class="l secondary">{last}</div></div></div>"""
         )
     markers = []

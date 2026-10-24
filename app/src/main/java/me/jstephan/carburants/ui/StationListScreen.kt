@@ -184,41 +184,47 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
 
     private fun itemList(list: List<Station>): ItemList {
         val shown = visible(list)
+        // Lowest price of each followed fuel among the stations shown: in green.
+        val cheapest = fuels.associateWith { f -> shown.mapNotNull { it.price(f) }.minOrNull() }
         val items = ItemList.Builder()
             .setNoItemsMessage(carContext.getString(R.string.no_station, fuelsLabel(), radiusKm))
-        shown.forEach { items.addItem(row(it)) }
+        shown.forEach { items.addItem(row(it, cheapest)) }
         return items.build()
     }
 
-    private fun row(station: Station): Row {
+    private fun row(station: Station, cheapest: Map<Fuel, Double?>): Row {
         val image = CarIcon.Builder(IconCompat.createWithBitmap(repo.logos.stationBitmap(station, LOGO_PX))).build()
+        val prices = fuels.filter { station.sells(it) }.map { pricePart(station, it, cheapest[it]) }
 
-        // The followed fuels sold here, each "Gazole 2,250 €". The first is the title (largest text,
-        // wraps on two lines); the others take the next line, short enough for a narrow portrait
-        // panel. Titles take no colour: the cheapest stations come first instead.
-        val prices = fuels.filter { station.sells(it) }.map { f ->
-            val price = station.price(f)
-            val value = when {
-                price != null -> Format.price(price)
-                station.fuels[f]?.rupture != null -> carContext.getString(R.string.rupture).lowercase()
-                else -> "–"
-            }
-            "${f.short} $value"
-        }
-
-        // Last line: distance · opening status with one fuel, distance · name with more.
+        // Title: the station. Then one fuel per line, short enough for a narrow portrait panel:
+        //   Gazole 2,250 €
+        //   SP98 1,990 € · 2.3 km
+        // With one fuel the last line is distance · opening status; with three or more, the
+        // distance comes first so it is never cut off.
+        val first = prices.firstOrNull() ?: SpannableStringBuilder(carContext.getString(R.string.no_price))
         val last = SpannableStringBuilder()
-        station.distanceKm?.let { last.appendDistance(it) }
-        val opening = Format.opening(carContext, station)
-        if (prices.size <= 1 && opening != null) {
-            if (last.isNotEmpty()) last.append(" · ")
-            last.appendColored(opening.text, opening.color)
-        } else if (prices.size > 1) {
-            if (last.isNotEmpty()) last.append(" · ")
-            last.append(station.name)
+        val others = prices.drop(1)
+        when {
+            others.isEmpty() -> {
+                station.distanceKm?.let { last.appendDistance(it) }
+                Format.opening(carContext, station)?.let { opening ->
+                    if (last.isNotEmpty()) last.append(" · ")
+                    last.appendColored(opening.text, opening.color)
+                }
+            }
+            others.size == 1 -> {
+                last.append(others[0])
+                station.distanceKm?.let { last.append(" · ").appendDistance(it) }
+            }
+            else -> {
+                station.distanceKm?.let { last.appendDistance(it).append(" · ") }
+                others.forEachIndexed { index, part ->
+                    if (index > 0) last.append(" · ")
+                    last.append(part)
+                }
+            }
         }
         if (last.isEmpty()) last.append(station.prettyCity)
-        val middle = if (prices.size > 1) prices.drop(1).joinToString(" · ") else station.name
 
         // The station's logo as its marker: on the map and next to the row (a row can't have both
         // an image and a marker, and the host refuses a colour on image markers).
@@ -226,8 +232,8 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
         val place = Place.Builder(CarLocation.create(station.latitude, station.longitude)).setMarker(marker).build()
 
         return Row.Builder()
-            .setTitle(prices.firstOrNull() ?: station.name)
-            .addText(middle)
+            .setTitle(station.name)
+            .addText(first)
             .addText(last)
             .setMetadata(Metadata.Builder().setPlace(place).build())
             .setOnClickListener { screenManager.push(StationDetailScreen(carContext, station, fuels)) }
@@ -246,6 +252,19 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
             .setOnClickListener(::toggleSort)
             .build()
         return ActionStrip.Builder().addAction(fuelAction).addAction(sortAction).build()
+    }
+
+    /** "Gazole 2,250 €", the lowest of the list in green, a shortage in red. */
+    private fun pricePart(station: Station, fuel: Fuel, lowest: Double?): CharSequence {
+        val text = SpannableStringBuilder(fuel.short).append(' ')
+        val price = station.price(fuel)
+        return when {
+            price != null && price == lowest -> text.appendColored(Format.price(price), CarColor.GREEN)
+            price != null -> text.append(Format.price(price))
+            station.fuels[fuel]?.rupture != null ->
+                text.appendColored(carContext.getString(R.string.rupture).lowercase(), CarColor.RED)
+            else -> text.append("–")
+        }
     }
 
     /** "Gazole", "E10, SP98", "3 carburants". */

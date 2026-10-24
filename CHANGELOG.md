@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.6
+
+### Changes
+- Station list: the station name is the title again, then one followed fuel per line ("Gazole 2,250 €", then "SP98 1,990 € · 2.3 km"), the lowest price of each fuel in green and shortages in red. With one fuel, the last line is distance and opening status; with three or more, the distance comes first on the last line.
+
 ## 1.1.5
 
 ### Changes
