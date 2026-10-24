@@ -1,6 +1,7 @@
 package me.jstephan.carburants
 
 import android.content.Context
+import androidx.core.content.edit
 import me.jstephan.carburants.data.Fuel
 
 enum class SortOrder { PRICE, DISTANCE }
@@ -16,11 +17,14 @@ class Prefs(context: Context) {
                 ?: listOfNotNull(store.getString(KEY_FUEL_V1, null)) // Builds before the release kept a single fuel.
             return Fuel.entries.filter { it.key in stored }.ifEmpty { listOf(Fuel.GAZOLE) }
         }
-        set(value) = store.edit().putString(KEY_FUELS, value.joinToString(",") { it.key }).remove(KEY_FUEL_V1).apply()
+        set(value) = store.edit {
+            putString(KEY_FUELS, value.joinToString(",") { it.key })
+            remove(KEY_FUEL_V1)
+        }
 
     var sort: SortOrder
         get() = SortOrder.entries.firstOrNull { it.name == store.getString(KEY_SORT, null) } ?: SortOrder.PRICE
-        set(value) = store.edit().putString(KEY_SORT, value.name).apply()
+        set(value) = store.edit { putString(KEY_SORT, value.name) }
 
     private companion object {
         const val KEY_FUELS = "fuels"

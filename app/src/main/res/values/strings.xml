@@ -4,6 +4,13 @@
 
     <string name="list_title">Stations à proximité</string>
     <string name="no_station">Aucune station %1$s dans un rayon de %2$d km. Les prix couvrent la France uniquement.</string>
+    <string name="list_title_town">Stations à %1$s</string>
+    <string name="no_station_town">Aucune station %1$s autour de %2$s.</string>
+    <string name="search_hint">Ville ou code postal</string>
+    <string name="search_prompt">Saisissez au moins 2 lettres d\'une ville ou un code postal.</string>
+    <string name="no_town">Aucune ville trouvée.</string>
+    <string name="search_failed">Recherche impossible. Vérifiez la connexion.</string>
+    <string name="my_position">Ma position</string>
     <string name="sort_price">Prix</string>
     <string name="sort_distance">Distance</string>
     <string name="error_network">Impossible de récupérer les prix. Vérifiez la connexion.</string>

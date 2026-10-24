@@ -15,6 +15,7 @@ so it follows the platform's driving guidelines out of the box.
 - Fuel picker: switch on the fuels your car takes (Gazole, SP95, SP98, E10, E85, GPLc, at least one); the price sort uses
   the cheapest of them at each station. Fuels and sort are remembered
 - Automatic refresh after 2 km or 10 minutes; 10 km radius, widened to 30 km when there are fewer than 3 stations
+- Town search (name or postcode) with suggestions as you type; the clear button goes back to the stations around the car
 
 ## Screenshots
 
@@ -26,6 +27,10 @@ Google Play listing screenshots, refreshed by running the Emulator workflow by h
 | ![Nearby stations](play/graphics/automotive/landscape-1-list.png) | ![Station](play/graphics/automotive/landscape-2-detail.png) | ![Fuels](play/graphics/automotive/landscape-3-fuel.png) |
 | ![Nearby stations, portrait](play/graphics/automotive/portrait-1-list.png) | ![Station, portrait](play/graphics/automotive/portrait-2-detail.png) | ![Fuels, portrait](play/graphics/automotive/portrait-3-fuel.png) |
 
+| Town search | Around a town | Search again, clear to go back |
+| --- | --- | --- |
+| ![Town search](play/graphics/automotive/landscape-4-search.png) | ![Around a town](play/graphics/automotive/landscape-5-town.png) | ![Search again](play/graphics/automotive/landscape-6-search-town.png) |
+
 ## Data
 
 Same sources and logic as [ha-carburants-france](https://github.com/juju35/ha-carburants-france):
@@ -35,6 +40,7 @@ Same sources and logic as [ha-carburants-france](https://github.com/juju35/ha-ca
 | Prices, shortages, hours, services | [Prix des carburants en France – flux instantané v2](https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/) (no key) |
 | Station names and brands | [Aohzan/hass-prixcarburant](https://github.com/Aohzan/hass-prixcarburant) `stations_name.json` (Apache-2.0), weekly cache |
 | Brand fallback | OpenStreetMap via Overpass (`ref:FR:prix-carburants`, else nearest branded station within 300 m) |
+| Town search | [geo.api.gouv.fr](https://geo.api.gouv.fr/decoupage-administratif/communes) communes (name, postcode, centre), most populated first |
 | Brand → Wikidata | OSM `brand:wikidata`, else OSM's [name-suggestion-index](https://github.com/osmlab/name-suggestion-index) (fuel brands, BSD-3-Clause), weekly cache |
 | Logos | 42 French networks shipped with the app (`res/raw/brand_logos.json`: Leclerc, Intermarché, Carrefour, U, Total, Esso, Shell, BP, Avia…), else Wikidata P8972 (small logo or icon) / P154, or the parent organisation's, via Wikimedia Commons |
 

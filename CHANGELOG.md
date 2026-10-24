@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0
+
+### Features
+- Town search: a search button on the map opens a search field (town name or postcode) with suggestions as you type, from geo.api.gouv.fr, most populated towns first. Picking one shows the stations around it, distances still from the car; the list no longer follows the car while a town is shown.
+- A clear button next to the town (and "Ma position" in the search) goes back to the stations around the car.
+
+### Changes
+- Upgrade to AGP 9.4 and Gradle 9.6 (built-in Kotlin).
+
 ## 1.1.7
 
 ### Fixes

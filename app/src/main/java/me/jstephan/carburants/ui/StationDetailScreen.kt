@@ -16,6 +16,7 @@ import androidx.car.app.model.Row
 import androidx.car.app.model.Template
 import androidx.car.app.versioning.CarAppApiLevels
 import androidx.core.graphics.drawable.IconCompat
+import androidx.core.net.toUri
 import me.jstephan.carburants.R
 import me.jstephan.carburants.data.Fuel
 import me.jstephan.carburants.data.RUPTURE_DEFINITIVE
@@ -151,7 +152,7 @@ class StationDetailScreen(
     private fun navigate() {
         val lat = station.latitude
         val lon = station.longitude
-        val uri = Uri.parse("geo:$lat,$lon?q=" + Uri.encode("$lat,$lon(${station.name})"))
+        val uri = ("geo:$lat,$lon?q=" + Uri.encode("$lat,$lon(${station.name})")).toUri()
         try {
             carContext.startCarApp(Intent(CarContext.ACTION_NAVIGATE, uri))
         } catch (e: Exception) {

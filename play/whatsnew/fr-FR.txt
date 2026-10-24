@@ -1,2 +1,2 @@
-• Si la localisation est désactivée dans le véhicule, l'app l'indique et affiche les stations dès qu'elle est réactivée.
-• Le nom de chaque station puis le prix de vos carburants, un par ligne, le moins cher en vert.
+• Recherche par ville ou code postal, avec suggestions pendant la saisie.
+• Le bouton d'effacement revient aux stations autour de vous.

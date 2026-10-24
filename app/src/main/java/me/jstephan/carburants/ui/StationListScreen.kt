@@ -34,8 +34,10 @@ import me.jstephan.carburants.Prefs
 import me.jstephan.carburants.R
 import me.jstephan.carburants.SortOrder
 import me.jstephan.carburants.data.Fuel
+import me.jstephan.carburants.data.Geo
 import me.jstephan.carburants.data.Station
 import me.jstephan.carburants.data.StationRepository
+import me.jstephan.carburants.data.Town
 import me.jstephan.carburants.location.LocationTracker
 import me.jstephan.carburants.location.hasLocationPermission
 import me.jstephan.carburants.ui.Format.appendColored
@@ -51,6 +53,9 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
     private var stations: List<Station>? = null
     private var radiusKm = StationRepository.RADIUS_KM
     private var error: Int? = null
+
+    /** Town picked in the search, null for the stations around the car. */
+    private var town: Town? = null
 
     private var location: Location? = null
     private var fetchedAt: Location? = null
@@ -86,9 +91,9 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
             waitJob?.cancel()
             waitJob = lifecycleScope.launch {
                 delay(FIX_TIMEOUT_MS)
-                if (location == null) showError(R.string.error_location)
+                if (location == null && town == null) showError(R.string.error_location)
             }
-        } else if (isStale(location!!)) {
+        } else if (town == null && isStale(location!!)) {
             refresh()
         }
     }
@@ -100,7 +105,8 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
             error = null
             invalidate()
         }
-        if (isStale(loc) && fetchJob?.isActive != true) refresh()
+        // Around a town, the list stays put while driving.
+        if (town == null && isStale(loc) && fetchJob?.isActive != true) refresh()
     }
 
     private fun isStale(loc: Location): Boolean {
@@ -109,14 +115,26 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
     }
 
     private fun refresh() {
-        val loc = location ?: return
+        val searched = town
+        val loc = location
+        // Around the town picked, else around the car.
+        val (latitude, longitude) = searched?.let { it.latitude to it.longitude }
+            ?: loc?.let { it.latitude to it.longitude }
+            ?: return
         fetchJob?.cancel()
         fetchJob = lifecycleScope.launch {
             fetchedAt = loc
             fetchedTime = SystemClock.elapsedRealtime()
             try {
-                val result = repo.nearby(loc.latitude, loc.longitude, fuels)
-                stations = result.stations
+                val result = repo.nearby(latitude, longitude, fuels)
+                // Distances from the car when it is known, so "12 km" means from here.
+                stations = if (searched != null && loc != null) {
+                    result.stations.map {
+                        it.copy(distanceKm = Geo.distanceKm(loc.latitude, loc.longitude, it.latitude, it.longitude))
+                    }
+                } else {
+                    result.stations
+                }
                 radiusKm = result.radiusKm
                 error = null
                 invalidate()
@@ -158,11 +176,15 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
         if (list == null && err != null) return errorTemplate(err)
 
         @Suppress("DEPRECATION") // MapWithContentTemplate needs car API 7; Android 12 hosts don't have it.
+        val title = town?.let { carContext.getString(R.string.list_title_town, it.name) }
+            ?: carContext.getString(R.string.list_title)
         val builder = PlaceListMapTemplate.Builder()
-            .setTitle(carContext.getString(R.string.list_title))
+            .setTitle(title)
             .setHeaderAction(Action.APP_ICON)
             .setActionStrip(actionStrip())
             .setCurrentLocationEnabled(true)
+        // The town's centre as the map's reference point.
+        town?.let { builder.setAnchor(Place.Builder(CarLocation.create(it.latitude, it.longitude)).build()) }
         if (list == null) builder.setLoading(true) else builder.setItemList(itemList(list))
         return builder.build()
     }
@@ -192,7 +214,10 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
         // Lowest price of each followed fuel among the stations shown: in green.
         val cheapest = fuels.associateWith { f -> shown.mapNotNull { it.price(f) }.minOrNull() }
         val items = ItemList.Builder()
-            .setNoItemsMessage(carContext.getString(R.string.no_station, fuelsLabel(), radiusKm))
+            .setNoItemsMessage(
+                town?.let { carContext.getString(R.string.no_station_town, fuelsLabel(), it.name) }
+                    ?: carContext.getString(R.string.no_station, fuelsLabel(), radiusKm),
+            )
         shown.forEach { items.addItem(row(it, cheapest)) }
         return items.build()
     }
@@ -245,9 +270,14 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
             .build()
     }
 
+    // Search and fuels as icons: three actions fit next to the list, even on a portrait screen.
+    // The rows name the fuels; the title names the town.
     private fun actionStrip(): ActionStrip {
+        val search = Action.Builder()
+            .setIcon(Format.icon(carContext, R.drawable.ic_search))
+            .setOnClickListener(::searchTown)
+            .build()
         val fuelAction = Action.Builder()
-            .setTitle(fuelsLabel())
             .setIcon(Format.icon(carContext, R.drawable.ic_fuel))
             .setOnClickListener(::pickFuel)
             .build()
@@ -256,7 +286,27 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
             .setIcon(Format.icon(carContext, R.drawable.ic_sort))
             .setOnClickListener(::toggleSort)
             .build()
-        return ActionStrip.Builder().addAction(fuelAction).addAction(sortAction).build()
+        return ActionStrip.Builder().addAction(search).addAction(fuelAction).addAction(sortAction).build()
+    }
+
+    private fun searchTown() {
+        screenManager.pushForResult(TownSearchScreen(carContext, town)) { result ->
+            when (result) {
+                is Town -> showTown(result)
+                TownSearchScreen.CurrentPosition -> showTown(null)
+            }
+        }
+    }
+
+    /** Stations around [picked], or around the car again when null. */
+    private fun showTown(picked: Town?) {
+        if (picked == town) return
+        town = picked
+        stations = null
+        error = null
+        fetchedAt = null
+        refresh()
+        invalidate()
     }
 
     /** "Gazole 2,250 €", the lowest of the list in green, a shortage in red. */

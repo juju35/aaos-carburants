@@ -156,7 +156,7 @@ jobs:
         run: |
           mkdir -p play/graphics/automotive
           n=1
-          for screen in list detail fuel; do
+          for screen in list detail fuel search town search-town; do
             cp "shots/${{ matrix.name }}-$screen.png" "play/graphics/automotive/${{ matrix.name }}-$n-$screen.png"
             n=$((n + 1))
           done

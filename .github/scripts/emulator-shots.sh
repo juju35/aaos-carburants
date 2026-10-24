@@ -66,10 +66,13 @@ host_error && report_host_error
 # Landscape 1024x768: list panel 18-505 px, first row around y 250; fuel button at (758, 130).
 # Portrait 800x1280: panel 18-398 px, first row around y 260; fuel button at (533, 130).
 # Back arrow of the header at (56, 126) in both; SP98 switch, 3rd row of the fuel picker.
+# Strip, right-aligned: [search] [fuels] [Prix]; the search field's clear button top right.
 if [ "$W" -gt "$H" ]; then
-  ROW="0.30 0.32"; FUEL="0.74 0.17"; BACK="0.055 0.165"; SP98="0.83 0.60"
+  ROW="0.30 0.32"; FUEL="0.784 0.17"; SEARCH="0.698 0.17"; BACK="0.055 0.165"; SP98="0.83 0.60"
+  FIRST_TOWN="0.40 0.30"; FIELD_CLEAR="0.626 0.163"
 else
-  ROW="0.32 0.20"; FUEL="0.67 0.10"; BACK="0.07 0.10"; SP98="0.78 0.36"
+  ROW="0.32 0.20"; FUEL="0.724 0.10"; SEARCH="0.614 0.10"; BACK="0.07 0.10"; SP98="0.78 0.36"
+  FIRST_TOWN="0.40 0.18"; FIELD_CLEAR="0.953 0.098"
 fi
 
 # Follow SP98 too: the list then shows both prices.
@@ -87,6 +90,25 @@ shot detail 5
 crashed && report_crash
 host_error && report_host_error
 
-adb logcat -d | grep -E " (E|W) (StationList|StationDetail|BrandCache|CachedDownload|BrandLogos|AndroidRuntime|CarApp)" | tail -20 \
+# Town search: back to the list, search, type, pick the first town; then the search again
+# (the town in the field) and its clear button: back to the stations around the car.
+tap $BACK
+sleep 4
+tap $SEARCH
+sleep 4
+adb shell input text "cesson"
+shot search 6
+tap $FIRST_TOWN
+shot town 15
+crashed && report_crash
+host_error && report_host_error
+tap $SEARCH
+shot search-town 5
+tap $FIELD_CLEAR
+shot cleared 15
+crashed && report_crash
+host_error && report_host_error
+
+adb logcat -d | grep -E " (E|W) (StationList|StationDetail|TownSearch|BrandCache|CachedDownload|BrandLogos|AndroidRuntime|CarApp)" | tail -20 \
   | while read -r l; do echo "::warning::$l"; done
 exit 0

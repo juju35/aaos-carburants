@@ -8,6 +8,7 @@ Carburants est conçue pour Android Automotive OS : elle affiche les stations-se
 • Le prix de chacun de vos carburants, le moins cher en vert ; chaque station repérée par son logo sur la carte
 • Tri par prix ou par distance
 • Mise à jour automatique au fil du trajet
+• Recherche par ville ou code postal, avec suggestions pendant la saisie ; un bouton d'effacement revient aux stations autour de vous
 
 ★ Vos carburants
 • Choisissez un ou plusieurs carburants : Gazole, SP95, SP98, SP95-E10, E85, GPLc

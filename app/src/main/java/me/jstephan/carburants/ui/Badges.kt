@@ -8,6 +8,7 @@ import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import androidx.core.graphics.createBitmap
 import me.jstephan.carburants.data.Fuel
 
 /** Bitmaps drawn by the app: logo tiles, initials badges (as the card does) and fuel badges. */
@@ -39,7 +40,7 @@ object Badges {
 
     /** A [size] px rounded square filled with [color], and a canvas to draw on it. */
     private fun tile(size: Int, color: Int): Pair<Bitmap, Canvas> {
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(size, size)
         val canvas = Canvas(bitmap)
         val radius = size * 0.22f
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
