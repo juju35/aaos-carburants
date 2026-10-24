@@ -55,20 +55,29 @@ adb shell am start -W -n "$PKG/androidx.car.app.activity.CarAppActivity" | grep 
 for _ in 1 2 3; do adb emu geo fix -1.6795 48.1105 >/dev/null; sleep 2; done
 # Content within 10 s (DR-3); more time for names and logos.
 shot list-10s 8
-shot list 20
+sleep 12
 crashed && report_crash
 host_error && report_host_error
 
 # Positions in the template, landscape and portrait differ.
 # Landscape 1024x768: list panel 18-505 px, first row around y 250; fuel button at (758, 130).
 # Portrait 800x1280: panel 18-398 px, first row around y 260; fuel button at (533, 130).
-# Back arrow of the header at (56, 126) in both.
-if [ "$W" -gt "$H" ]; then ROW="0.30 0.32"; FUEL="0.74 0.17"; BACK="0.055 0.165"; else ROW="0.32 0.20"; FUEL="0.67 0.10"; BACK="0.07 0.10"; fi
+# Back arrow of the header at (56, 126) in both; SP98 switch, 3rd row of the fuel picker.
+if [ "$W" -gt "$H" ]; then
+  ROW="0.30 0.32"; FUEL="0.74 0.17"; BACK="0.055 0.165"; SP98="0.83 0.60"
+else
+  ROW="0.32 0.20"; FUEL="0.67 0.10"; BACK="0.07 0.10"; SP98="0.78 0.36"
+fi
 
+# Follow SP98 too: the list then shows both prices.
 tap $FUEL
-shot fuel 4
-tap $BACK
 sleep 4
+tap $SP98
+shot fuel 3
+tap $BACK
+shot list 15
+crashed && report_crash
+host_error && report_host_error
 
 tap $ROW
 shot detail 5

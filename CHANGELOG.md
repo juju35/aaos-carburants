@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3
+
+### Changes
+- Station list: the first line shows the price of each followed fuel, always with its name ("Gazole 2,250 € · SP98 1,899 €"), the lowest of each fuel in green; distance and opening status move to the second line.
+
 ## 1.1.2
 
 First version tested on Android Automotive (emulator with the templates host): earlier versions couldn't start in a car.

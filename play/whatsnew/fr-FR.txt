@@ -1,2 +1,2 @@
-• Le premier affichage est plus rapide : les noms des stations arrivent ensuite s'ils tardent.
-• Hors de France, un message indique que les prix couvrent la France uniquement.
+• La liste affiche en premier le prix de chacun de vos carburants, avec son nom ; le moins cher de chaque carburant est en vert.
+• La distance et l'ouverture passent sur la deuxième ligne.
