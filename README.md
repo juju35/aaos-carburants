@@ -1,4 +1,8 @@
+<p align="center"><img src="play/graphics/icon-512.png" alt="Carburants" width="128"></p>
+
 # Carburants — Android Automotive
+
+![Carburants](play/graphics/feature-graphic.png)
 
 Nearby fuel stations for **Android Automotive OS 12+** (API 31), built with the
 [Car App Library](https://developer.android.com/training/cars/apps) templates (POI category),
@@ -14,13 +18,13 @@ so it follows the platform's driving guidelines out of the box.
 
 ## Screenshots
 
+On the Android Automotive emulator (generic image, templates host), Gazole and SP98 followed. These are the
+Google Play listing screenshots, refreshed by running the Emulator workflow by hand with *screenshots*.
+
 | Nearby stations | Station | Fuels |
 | --- | --- | --- |
-| ![Nearby stations](screenshots/list.png) | ![Station detail](screenshots/detail.png) | ![Fuel picker](screenshots/fuel.png) |
-
-Mock-ups of the templates as the car's host draws them (dark theme, 1408 × 792), made with made-up
-data by `python scripts/screenshots.py` (Playwright + Pillow, map from the OpenStreetMap tiles in `scripts/tiles`,
-logos shipped with the app). The Screenshots workflow runs it again when the script or the logos change.
+| ![Nearby stations](play/graphics/automotive/landscape-1-list.png) | ![Station](play/graphics/automotive/landscape-2-detail.png) | ![Fuels](play/graphics/automotive/landscape-3-fuel.png) |
+| ![Nearby stations, portrait](play/graphics/automotive/portrait-1-list.png) | ![Station, portrait](play/graphics/automotive/portrait-2-detail.png) | ![Fuels, portrait](play/graphics/automotive/portrait-3-fuel.png) |
 
 ## Data
 
@@ -70,7 +74,6 @@ On a real car, third-party templated apps are installed through Google Play (int
 | Update release notes | Rewrites a release's notes from `CHANGELOG.md` (input `tag`) |
 | Clean up merged branches | Deletes merged branches after each pull request and weekly |
 | Stale | Marks and closes inactive issues and pull requests |
-| Screenshots | Makes the README screenshots again and commits them when they change |
 
 Release signing uses the repository secrets `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`,
 `SIGNING_KEY_ALIAS` and `SIGNING_KEY_PASSWORD`; without them the release is signed with the debug key

@@ -1,5 +1,5 @@
 {
-  "_comment": "Brand logos shipped with the app (drawable-nodpi), read by data/BrandLogos.kt and scripts/screenshots.py. keys: brand names as BrandIndex.key() writes them; a key matches the whole name, or its start when 4 letters or more; the longest match wins. dark: white logo, drawn on a dark tile.",
+  "_comment": "Brand logos shipped with the app (drawable-nodpi), read by data/BrandLogos.kt. keys: brand names as BrandIndex.key() writes them; a key matches the whole name, or its start when 4 letters or more; the longest match wins. dark: white logo, drawn on a dark tile.",
   "brands": [
     {
       "keys": [

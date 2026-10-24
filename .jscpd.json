@@ -10,8 +10,7 @@
   "ignore": [
     "**/build/**",
     "**/.gradle/**",
-    "**/.git/**",
-    "**/scripts/tiles/**"
+    "**/.git/**"
   ],
   "reporters": [
     "console"
