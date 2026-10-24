@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs the debug APK on the booted emulator: install, location in Rennes, launch, then
+# Runs the APK on the booted emulator: install, location in Rennes, launch, then
 # screenshots of the list, a station and the fuel picker. Fails on a crash of the app.
 # The templates host draws the app in a surface: no view tree to read, taps go by position
 # (fractions of the screen, from the template layout).

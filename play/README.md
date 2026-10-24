@@ -33,9 +33,11 @@ Automotive screenshots can't go through the Publishing API (no automotive `AppIm
 ### Data safety
 
 - Collects or shares user data: **Yes**
-- Data type: **Location › Approximate location** and **Precise location**
-  - Collected: **Yes** (sent off the device in the search request); Shared: **No** (sent to the public prices API only to
-    answer the search the user makes by opening the app)
+- Data type: **Location › Precise location** and **Approximate location**
+  - Collected: **Yes** — the position goes off the device in the search request to data.economie.gouv.fr
+  - Shared: **Yes, approximate location** — overpass-api.de (OpenStreetMap) receives the coordinates of the stations
+    shown, which locate the car to within a few kilometres. Declaring it is the safe reading of the policy; the
+    "user-initiated transfer" exception could also be argued, but a wrong "No" is what gets apps removed
   - Processed ephemerally: **Yes** — Required: **Yes** — Purpose: **App functionality**
 - Every other data type: not collected
 - Encrypted in transit: **Yes**
