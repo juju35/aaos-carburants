@@ -65,7 +65,12 @@ jobs:
           else
             echo "::warning::No signing secrets: release signed with the debug key (not accepted by Google Play)"
           fi
-          ./gradlew --no-daemon assembleRelease bundleRelease
+          if ! ./gradlew --no-daemon assembleRelease bundleRelease > gradle.log 2>&1; then
+            # The run log isn't always at hand: the cause as annotations.
+            grep -E "What went wrong|Caused by|> |error:|Exception" gradle.log | grep -v "^> Task" | head -15 \
+              | while read -r l; do echo "::error::$l"; done
+            exit 1
+          fi
           VERSION="${{ steps.version.outputs.version }}"
           cp app/build/outputs/apk/release/app-release.apk "carburants-$VERSION.apk"
           cp app/build/outputs/bundle/release/app-release.aab "carburants-$VERSION.aab"
