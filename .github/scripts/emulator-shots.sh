@@ -47,12 +47,15 @@ report_crash() {
 }
 
 adb install -r -g "$APK" | tail -1
-adb shell cmd location set-location-enabled true || true
-for _ in 1 2 3; do adb emu geo fix -1.6795 48.1105 >/dev/null; sleep 1; done
 adb logcat -c
 
+# Location off in the car: the app must say so, then load by itself once it is turned on.
+adb shell cmd location set-location-enabled false || true
 adb shell am start -W -n "$PKG/androidx.car.app.activity.CarAppActivity" | grep -E "Status|TotalTime" | while read -r l; do echo "::notice::$l"; done
-for _ in 1 2 3; do adb emu geo fix -1.6795 48.1105 >/dev/null; sleep 2; done
+shot location-off 6
+crashed && report_crash
+adb shell cmd location set-location-enabled true || true
+for _ in 1 2 3 4 5; do adb emu geo fix -1.6795 48.1105 >/dev/null; sleep 2; done
 # Content within 10 s (DR-3); more time for names and logos.
 shot list-10s 8
 sleep 12

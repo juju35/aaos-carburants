@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.7
+
+### Fixes
+- With location turned off in the car, the app said location wasn't allowed. It now says location is off and to turn it on in the car's settings, keeps listening, and loads the stations as soon as it is on.
+
 ## 1.1.6
 
 ### Changes

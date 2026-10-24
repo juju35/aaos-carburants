@@ -72,11 +72,13 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
     // ── Location and loading ─────────────────────────────────────────────────
 
     private fun startTracking() {
-        if (!tracker.start()) {
-            showError(R.string.error_permission)
-            return
+        when (tracker.start()) {
+            LocationTracker.Status.NO_PERMISSION -> return showError(R.string.error_permission)
+            // Still listening: the first position after location is turned on clears the message.
+            LocationTracker.Status.DISABLED -> return showError(R.string.error_location_disabled)
+            LocationTracker.Status.OK -> Unit
         }
-        if (error == R.string.error_permission) {
+        if (error == R.string.error_permission || error == R.string.error_location_disabled) {
             error = null
             invalidate()
         }
@@ -94,7 +96,10 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
     private fun onLocation(loc: Location) {
         location = loc
         waitJob?.cancel()
-        if (error == R.string.error_location) error = null
+        if (error == R.string.error_location || error == R.string.error_location_disabled) {
+            error = null
+            invalidate()
+        }
         if (isStale(loc) && fetchJob?.isActive != true) refresh()
     }
 

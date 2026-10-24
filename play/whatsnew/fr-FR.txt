@@ -1,2 +1,2 @@
-• Chaque station affiche son nom puis le prix de vos carburants, un par ligne, le moins cher en vert.
-• La distance reste visible en bout de ligne, même sur un écran vertical.
+• Si la localisation est désactivée dans le véhicule, l'app l'indique et affiche les stations dès qu'elle est réactivée.
+• Le nom de chaque station puis le prix de vos carburants, un par ligne, le moins cher en vert.
