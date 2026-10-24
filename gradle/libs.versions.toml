@@ -1,6 +1,5 @@
 [versions]
-agp = "8.10.1"
-kotlin = "2.0.21"
+agp = "9.4.0"
 detekt = "1.23.8"
 carApp = "1.4.0"
 coreKtx = "1.13.1"
@@ -17,5 +16,4 @@ detekt-formatting = { module = "io.gitlab.arturbosch.detekt:detekt-formatting", 
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
