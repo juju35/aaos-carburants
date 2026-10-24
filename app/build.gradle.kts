@@ -8,7 +8,7 @@ plugins {
 }
 
 // The one place to bump before a release: versionCode follows (1.2.3 -> 10203).
-val appVersion = "1.1.4"
+val appVersion = "1.1.5"
 
 android {
     namespace = "me.jstephan.carburants"

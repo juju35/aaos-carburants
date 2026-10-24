@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.5
+
+### Changes
+- Station list on a narrow (portrait) screen: the first followed fuel's price is the row's title ("Gazole 2,250 €"), the other fuels go on the next line, then distance and station name. With one fuel: price, station name, then distance and opening status. Nothing is cut off any more with two fuels.
+
 ## 1.1.4
 
 ### Changes

@@ -1,2 +1,2 @@
-• Les prix de vos carburants s'affichent en grand en tête de chaque station, sans être coupés, même avec plusieurs carburants ou sur un écran vertical.
-• Le nom de la station, la distance et l'ouverture suivent en dessous.
+• Le prix de vos carburants s'affiche en tête de chaque station, en grand, sans être coupé même avec plusieurs carburants ou sur un écran vertical.
+• Puis le nom de la station, la distance et l'ouverture.

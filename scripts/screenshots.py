@@ -306,7 +306,7 @@ def list_page():
     stations = sorted_stations()
     rows = []
     for st in stations:
-        # As StationListScreen.row: prices in the title (no colour there), name, distance · status.
+        # As StationListScreen.row: first price as the title (no colour there), other prices, distance · name.
         parts = []
         for key in CHOSEN:
             if key not in st["prices"]:
@@ -315,11 +315,17 @@ def list_page():
             parts.append(f"{SHORT[key]} {fmt_price(price) if price else 'rupture'}")
         status, state = st["status"]
         cls = {"open": "green", "automate": "yellow", "closed": "red"}[state]
+        if len(parts) > 1:
+            middle = " · ".join(parts[1:])
+            last = f"{fmt_distance(st['distance'])} · {html.escape(st['name'])}"
+        else:
+            middle = html.escape(st["name"])
+            last = f'{fmt_distance(st["distance"])} · <span class="{cls}">{status}</span>'
         rows.append(
             f"""<div class="row">{logo(st, 72)}<div class="txt">
-            <div class="t">{" · ".join(parts)}</div>
-            <div class="l">{html.escape(st["name"])}</div>
-            <div class="l secondary">{fmt_distance(st["distance"])} · <span class="{cls}">{status}</span></div></div></div>"""
+            <div class="t">{parts[0]}</div>
+            <div class="l">{middle}</div>
+            <div class="l secondary">{last}</div></div></div>"""
         )
     markers = []
     for st in stations:

@@ -193,10 +193,10 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
     private fun row(station: Station): Row {
         val image = CarIcon.Builder(IconCompat.createWithBitmap(repo.logos.stationBitmap(station, LOGO_PX))).build()
 
-        // Title, the largest text and on two lines if needed: the price of each followed fuel
-        // sold here, "Gazole 2,250 € · SP98 1,899 €". Titles take no colour: the list is sorted
-        // on the cheapest instead.
-        val prices = fuels.filter { station.sells(it) }.joinToString(" · ") { f ->
+        // The followed fuels sold here, each "Gazole 2,250 €". The first is the title (largest text,
+        // wraps on two lines); the others take the next line, short enough for a narrow portrait
+        // panel. Titles take no colour: the cheapest stations come first instead.
+        val prices = fuels.filter { station.sells(it) }.map { f ->
             val price = station.price(f)
             val value = when {
                 price != null -> Format.price(price)
@@ -206,14 +206,19 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
             "${f.short} $value"
         }
 
-        // Line 2: distance · opening status.
-        val line2 = SpannableStringBuilder()
-        station.distanceKm?.let { line2.appendDistance(it) }
-        Format.opening(carContext, station)?.let { opening ->
-            if (line2.isNotEmpty()) line2.append(" · ")
-            line2.appendColored(opening.text, opening.color)
+        // Last line: distance · opening status with one fuel, distance · name with more.
+        val last = SpannableStringBuilder()
+        station.distanceKm?.let { last.appendDistance(it) }
+        val opening = Format.opening(carContext, station)
+        if (prices.size <= 1 && opening != null) {
+            if (last.isNotEmpty()) last.append(" · ")
+            last.appendColored(opening.text, opening.color)
+        } else if (prices.size > 1) {
+            if (last.isNotEmpty()) last.append(" · ")
+            last.append(station.name)
         }
-        if (line2.isEmpty()) line2.append(station.prettyCity)
+        if (last.isEmpty()) last.append(station.prettyCity)
+        val middle = if (prices.size > 1) prices.drop(1).joinToString(" · ") else station.name
 
         // The station's logo as its marker: on the map and next to the row (a row can't have both
         // an image and a marker, and the host refuses a colour on image markers).
@@ -221,9 +226,9 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
         val place = Place.Builder(CarLocation.create(station.latitude, station.longitude)).setMarker(marker).build()
 
         return Row.Builder()
-            .setTitle(prices.ifEmpty { station.name })
-            .addText(station.name)
-            .addText(line2)
+            .setTitle(prices.firstOrNull() ?: station.name)
+            .addText(middle)
+            .addText(last)
             .setMetadata(Metadata.Builder().setPlace(place).build())
             .setOnClickListener { screenManager.push(StationDetailScreen(carContext, station, fuels)) }
             .build()
