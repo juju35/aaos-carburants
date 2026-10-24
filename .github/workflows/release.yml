@@ -56,8 +56,14 @@ jobs:
           SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
         run: |
+          trap 'echo "::error::line $LINENO: $BASH_COMMAND (exit $?)"' ERR
           if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+            if ! echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks" 2>/dev/null || [ ! -s "$RUNNER_TEMP/upload.jks" ]; then
+              echo "::error::SIGNING_KEYSTORE_BASE64 is not valid base64 (set it with: base64 -i upload.jks | tr -d '\n')"
+              exit 1
+            fi
+            keytool -list -keystore "$RUNNER_TEMP/upload.jks" -storepass "$SIGNING_STORE_PASSWORD" -alias "$SIGNING_KEY_ALIAS" >/dev/null 2>&1 \
+              || { echo "::error::Keystore, SIGNING_STORE_PASSWORD or SIGNING_KEY_ALIAS don't match (keytool -list fails)"; exit 1; }
             export SIGNING_KEYSTORE="$RUNNER_TEMP/upload.jks"
           elif [ -n "$PLAY_JSON" ]; then
             echo "::error::PLAY_SERVICE_ACCOUNT_JSON is set but not the signing secrets: Google Play refuses debug-signed bundles"
