@@ -19,6 +19,9 @@ jobs:
         with:
           python-version: "3.13"
       - uses: pre-commit/action@v3.0.1
+        env:
+          # Their own jobs below report them as annotations.
+          SKIP: detekt,jscpd,android-lint
 
   ruff:
     name: Ruff (annotations)

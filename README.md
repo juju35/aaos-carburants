@@ -96,7 +96,17 @@ the app; its JSON key goes in the `PLAY_SERVICE_ACCOUNT_JSON` secret. The Releas
 version to `automotive:qa` (variable `PLAY_TRACK`) as a `draft` (variable `PLAY_RELEASE_STATUS`, `completed` once
 the app is published), with the notes of `play/whatsnew/fr-FR.txt`.
 
-Locally: `./gradlew detekt lintDebug` and `pre-commit run --all-files`.
+Locally, `pre-commit install` (Java 17 and Node needed) sets up the same checks:
+
+| Hook | Stage | What |
+| --- | --- | --- |
+| pre-commit-hooks, Ruff | commit | whitespace, YAML/JSON/XML/TOML, Python lint and format |
+| vulture | commit | dead code in `scripts/` |
+| detekt | commit (Kotlin changed) | Kotlin lint (ktlint rules) and dead code (unused private members, parameters, imports) |
+| jscpd | commit | duplicated code, Kotlin and Python (`.jscpd.json`) |
+| Android lint | push (app changed) | Android lint, unused resources as errors |
+
+`pre-commit run --all-files` runs the commit stage on everything, `pre-commit run --hook-stage pre-push --all-files` Android lint.
 
 ## License
 

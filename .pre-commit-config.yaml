@@ -1,4 +1,6 @@
 exclude: ^scripts/tiles/
+# `pre-commit install` sets up both the commit and the push hooks.
+default_install_hook_types: [pre-commit, pre-push]
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -19,3 +21,35 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+  # Dead code in the Python scripts.
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.16
+    hooks:
+      - id: vulture
+        args: [scripts, --min-confidence, "60"]
+  - repo: local
+    hooks:
+      # Kotlin lint (ktlint rules) and dead code (unused private members, parameters,
+      # imports): the same Detekt run as CI, with config/detekt/detekt.yml.
+      - id: detekt
+        name: detekt (Kotlin lint, dead code)
+        entry: ./gradlew --quiet --console=plain detekt
+        language: system
+        pass_filenames: false
+        files: \.(kt|kts)$|^config/detekt/
+      # Duplicated code in Kotlin and Python, same settings as CI (.jscpd.json).
+      - id: jscpd
+        name: jscpd (duplication)
+        entry: jscpd .
+        language: node
+        additional_dependencies: ["jscpd@5.4.2"]
+        pass_filenames: false
+        types_or: [kotlin, python]
+      # Android lint, unused resources included: slower, so before a push.
+      - id: android-lint
+        name: Android lint (unused resources)
+        entry: ./gradlew --quiet --console=plain lintDebug
+        language: system
+        pass_filenames: false
+        files: ^app/
+        stages: [pre-push]

@@ -59,6 +59,8 @@ android {
         warningsAsErrors = false
         checkDependencies = false
         sarifReport = true
+        // Dead resources fail the build, not just warn.
+        error += "UnusedResources"
         // Translations and Play-only checks don't apply to this French-only, sideload-tested app.
         disable += setOf("MissingTranslation", "GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
     }
