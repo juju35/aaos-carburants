@@ -4,7 +4,7 @@ Nearby fuel stations for **Android Automotive OS 12+** (API 31), built with the
 [Car App Library](https://developer.android.com/training/cars/apps) templates (POI category),
 so it follows the platform's driving guidelines out of the box.
 
-- Map + list of the nearest stations selling the fuels your car takes, with the price of each; the cheapest highlighted in green, each station marked with its logo on the map
+- Map + list of the nearest stations selling the fuels your car takes, with the price of each in large type at the top of the row, each station marked with its logo on the map
 - Logo, name, price, distance, opening status per station
 - Detail: your cheapest fuel there and its freshness, your other fuels, the rest, address, hours, services, **Go** button that hands
   the destination to the car's navigation app (`CarContext.ACTION_NAVIGATE`)

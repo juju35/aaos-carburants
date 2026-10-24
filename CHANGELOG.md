@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.4
+
+### Changes
+- Station list: the prices of the followed fuels are the row's title, in large type and on two lines if needed, so they no longer get cut off with two fuels or on a portrait screen ("Gazole 2,250 € · SP98 1,899 €"). The station name follows, then distance and opening status. Titles take no colour: the cheapest stations come first.
+
 ## 1.1.3
 
 ### Changes

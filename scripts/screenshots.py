@@ -304,30 +304,22 @@ def best(st):
 
 def list_page():
     stations = sorted_stations()
-    cheapest = best(stations[0])[1]
     rows = []
     for st in stations:
-        best_key, best_price = best(st)
+        # As StationListScreen.row: prices in the title (no colour there), name, distance · status.
         parts = []
         for key in CHOSEN:
             if key not in st["prices"]:
                 continue  # Not sold here.
             price = st["prices"][key]
-            if price is None:
-                value = '<span class="red">rupture</span>'
-            elif key == best_key and best_price == cheapest:
-                value = f'<span class="green">{fmt_price(price)}</span>'
-            else:
-                value = fmt_price(price)
-            parts.append(f"{SHORT[key]} {value}")
-        price_html = " · ".join(parts)
+            parts.append(f"{SHORT[key]} {fmt_price(price) if price else 'rupture'}")
         status, state = st["status"]
         cls = {"open": "green", "automate": "yellow", "closed": "red"}[state]
         rows.append(
             f"""<div class="row">{logo(st, 72)}<div class="txt">
-            <div class="t">{html.escape(st["name"])}</div>
-            <div class="l">{fmt_distance(st["distance"])} · {price_html}</div>
-            <div class="l secondary">Rennes · <span class="{cls}">{status}</span></div></div></div>"""
+            <div class="t">{" · ".join(parts)}</div>
+            <div class="l">{html.escape(st["name"])}</div>
+            <div class="l secondary">{fmt_distance(st["distance"])} · <span class="{cls}">{status}</span></div></div></div>"""
         )
     markers = []
     for st in stations:

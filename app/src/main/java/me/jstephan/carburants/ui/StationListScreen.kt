@@ -184,33 +184,29 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
 
     private fun itemList(list: List<Station>): ItemList {
         val shown = visible(list)
-        // Lowest price of each followed fuel among the stations shown: in green.
-        val cheapest = fuels.associateWith { f -> shown.mapNotNull { it.price(f) }.minOrNull() }
         val items = ItemList.Builder()
             .setNoItemsMessage(carContext.getString(R.string.no_station, fuelsLabel(), radiusKm))
-        shown.forEach { items.addItem(row(it, cheapest)) }
+        shown.forEach { items.addItem(row(it)) }
         return items.build()
     }
 
-    private fun row(station: Station, cheapest: Map<Fuel, Double?>): Row {
+    private fun row(station: Station): Row {
         val image = CarIcon.Builder(IconCompat.createWithBitmap(repo.logos.stationBitmap(station, LOGO_PX))).build()
 
-        // Line 1: the price of each followed fuel sold here, "Gazole 2,250 € · SP98 1,899 €".
-        val line1 = SpannableStringBuilder()
-        fuels.filter { station.sells(it) }.forEachIndexed { index, f ->
-            if (index > 0) line1.append(" · ")
-            line1.append(f.short).append(' ')
+        // Title, the largest text and on two lines if needed: the price of each followed fuel
+        // sold here, "Gazole 2,250 € · SP98 1,899 €". Titles take no colour: the list is sorted
+        // on the cheapest instead.
+        val prices = fuels.filter { station.sells(it) }.joinToString(" · ") { f ->
             val price = station.price(f)
-            when {
-                price != null && price == cheapest[f] -> line1.appendColored(Format.price(price), CarColor.GREEN)
-                price != null -> line1.append(Format.price(price))
-                station.fuels[f]?.rupture != null ->
-                    line1.appendColored(carContext.getString(R.string.rupture).lowercase(), CarColor.RED)
-                else -> line1.append("–")
+            val value = when {
+                price != null -> Format.price(price)
+                station.fuels[f]?.rupture != null -> carContext.getString(R.string.rupture).lowercase()
+                else -> "–"
             }
+            "${f.short} $value"
         }
 
-        // Line 2: distance · opening status (the town is in the station's detail).
+        // Line 2: distance · opening status.
         val line2 = SpannableStringBuilder()
         station.distanceKm?.let { line2.appendDistance(it) }
         Format.opening(carContext, station)?.let { opening ->
@@ -225,8 +221,8 @@ class StationListScreen(carContext: CarContext) : Screen(carContext) {
         val place = Place.Builder(CarLocation.create(station.latitude, station.longitude)).setMarker(marker).build()
 
         return Row.Builder()
-            .setTitle(station.name)
-            .addText(line1)
+            .setTitle(prices.ifEmpty { station.name })
+            .addText(station.name)
             .addText(line2)
             .setMetadata(Metadata.Builder().setPlace(place).build())
             .setOnClickListener { screenManager.push(StationDetailScreen(carContext, station, fuels)) }
