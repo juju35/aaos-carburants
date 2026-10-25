@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Debug APK
+    name: Debug APK and unit tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -16,7 +16,27 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v5
-      - run: ./gradlew --no-daemon assembleDebug
+      - name: Build
+        run: ./gradlew --no-daemon assembleDebug testDebugUnitTest 2>&1 | tee build.log; exit "${PIPESTATUS[0]}"
+      # Kotlin compiler errors and warnings on the pull request ("e: file:///…/X.kt:12:5 message").
+      - name: Annotations
+        if: failure()
+        run: |
+          sed -nE "s#^([ew]): file://${GITHUB_WORKSPACE}/([^:]+):([0-9]+):([0-9]+) (.*)#\1 \2 \3 \4 \5#p" build.log |
+            while read -r level file line col message; do
+              [ "$level" = e ] && kind=error || kind=warning
+              echo "::$kind file=$file,line=$line,col=$col::$message"
+            done
+          # Anything else (resources, manifest, dependencies): Gradle's own summary.
+          what=$(awk '/What went wrong:/ {f = 1; next} f && /^\* Try:/ {exit} f' build.log | tr '\n' ' ')
+          [ -z "$what" ] || echo "::error title=Gradle::$what"
+      - name: Test report
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v5
         with:
           name: carburants-debug-apk
