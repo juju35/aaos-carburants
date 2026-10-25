@@ -74,6 +74,7 @@ On a real car, third-party templated apps are installed through Google Play (int
 | Workflow | What |
 | --- | --- |
 | Lint | pre-commit (whitespace, YAML/XML/TOML, Ruff for `scripts/`), Detekt + ktlint (Kotlin quality, dead code), Android lint, jscpd (duplication). Detekt and Android lint findings go to code scanning, shown on pull requests |
+| CodeQL | Security and quality queries on the Kotlin code and the workflows; weekly too |
 | Build | Debug APK, as a build artifact |
 | Emulator | Runs the app on an Android Automotive emulator with the templates host (landscape and portrait) on each app change; fails on a crash or a template the host refuses. Run by hand with *screenshots* to refresh the Play screenshots |
 | Release | On `main`, when `appVersion` in `app/build.gradle.kts` has no tag yet: signed APK + App Bundle, notes from `CHANGELOG.md`; upload to Google Play when its secret is set |
