@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0
+## 1.3.0
 
 ### Features
 - Town search: a search button on the map opens a search field (town name or postcode) with suggestions as you type, from geo.api.gouv.fr, most populated towns first. Picking one shows the stations around it, distances still from the car; the list no longer follows the car while a town is shown.
