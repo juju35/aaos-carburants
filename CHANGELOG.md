@@ -7,7 +7,7 @@
 - A clear button next to the town (and "Ma position" in the search) goes back to the stations around the car.
 
 ### Changes
-- Upgrade to AGP 9.4 and Gradle 9.6 (built-in Kotlin).
+- Upgrade to AGP 9.4 and Gradle 9.8 (built-in Kotlin).
 
 ## 1.1.7
 
